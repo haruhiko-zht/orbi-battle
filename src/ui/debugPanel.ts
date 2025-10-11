@@ -1,5 +1,12 @@
 import type { BattleConfig } from "../sim/types";
 
+/**
+ * 数値入力フィールドを生成するヘルパー関数
+ * @param label ラベルテキスト
+ * @param value 初期値
+ * @param step ステップ値（デフォルト: 1）
+ * @returns ラップ要素とinput要素
+ */
 function numberInput(label: string, value: number, step = 1) {
   const wrap = document.createElement("div");
   const l = document.createElement("label");
@@ -13,6 +20,14 @@ function numberInput(label: string, value: number, step = 1) {
   return { wrap, input: i };
 }
 
+/**
+ * デバッグパネルを生成
+ * - パラメータ調整用のUI
+ * - Restartボタンで新しい設定でバトルをリセット
+ * - window.$orbi.reset() を経由してPhaserシーンと連携
+ *
+ * @param cfg 初期設定
+ */
 export function createDebugPanel(cfg: BattleConfig) {
   const overlay = document.getElementById("overlay")!;
   overlay.innerHTML = "";
@@ -52,6 +67,7 @@ export function createDebugPanel(cfg: BattleConfig) {
   rows.forEach((r) => overlay.appendChild(r.wrap));
   overlay.appendChild(btn);
 
+  // Restartボタンのクリックハンドラ
   btn.onclick = () => {
     const next: BattleConfig = {
       seed: Number(seed.input.value),
