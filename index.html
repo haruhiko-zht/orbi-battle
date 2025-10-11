@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbi Battle - Vertical Slice</title>
+    <style>
+      html,
+      body,
+      #app {
+        height: 100%;
+        margin: 0;
+      }
+      #overlay {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        padding: 8px;
+        border-radius: 8px;
+        font: 12px/1.4 ui-monospace, monospace;
+      }
+      #overlay input {
+        width: 72px;
+      }
+      #overlay label {
+        display: inline-block;
+        min-width: 70px;
+      }
+      #overlay button {
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="overlay"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
