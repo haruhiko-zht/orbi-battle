@@ -40,4 +40,4 @@
   - [roadmap.md](./dev/roadmap.md) - 今後の開発計画（フェーズ別）
   - **[next-steps.md](./dev/next-steps.md)** - 次のステップ詳細ガイド
   - [setup.md](./dev/setup.md) - セットアップ手順
-  - [test.md](./dev/test.md) - テスト方針
+  - [tests.md](./dev/tests.md) - テスト環境ガイド
