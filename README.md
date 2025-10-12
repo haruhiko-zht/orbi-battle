@@ -1,40 +1,50 @@
 # orbi-battle
 
-2D 円形アリーナでのオートバトルシミュレーター
+2D 円形アリーナでの決定論的オートバトルシミュレーター。
 
-## セットアップ
+## クイックスタート
 
-```sh
-npm install
-npm run dev
-```
+1. `npm install`
+2. `npm run dev`
+3. ブラウザで `http://localhost:5173`
 
-ブラウザで http://localhost:5173 にアクセス
+## 主な特徴
 
-## 特徴
+- **事前シミュレーション**で全フレームを計算し、リプレイや検証が容易
+- **決定論的ロジック**により同じシードと設定で常に同結果を保証
+- **レイヤー分離**（Simulation / Rendering / UI）でテストしやすく拡張が容易
+- **デバッグパネル**からリアルタイムにパラメータ変更とリセットが可能
 
-- **事前シミュレーション方式**: バトル全体を計算してリプレイ可能
-- **決定論的**: 同じシード・設定で同じ結果を保証
-- **レイヤー分離**: シミュレーション/描画/UI を完全分離
-- **デバッグパネル**: パラメータをリアルタイムで調整可能
-- **高テストカバレッジ**: 79 テスト、コアロジック 96%カバー
+## アーキテクチャ概要
 
-## ドキュメント
+- `src/sim/`: 乱数を含むすべての戦闘ロジック。Node.js 環境でも実行可能。
+- `src/render/`: Phaser シーン。ログを再生して描画のみ担当。
+- `src/ui/`: Debug パネルなど DOM 連携を管理。
+- `src/config/defaults.ts`: アリーナプリセットとパラメータの集約。
 
-### 📚 設計ドキュメント
+詳細は [docs/README.md](./docs/README.md) と設計ドキュメントを参照してください。
 
-- [アーキテクチャ全体像](./docs/design/architecture.md) - レイヤー構造、データフロー
-- [システム設計](./docs/design/system.md) - 各層の役割と連携
-- [シミュレーション仕様](./docs/design/simulation.md) - AI ロジック、決定論
+## 開発コマンド
 
-### 🚀 開発ガイド
+- `npm run dev` — Vite のホットリロード開発サーバー
+- `npm run build` — 本番ビルド（TypeScript 型チェックあり）
+- `npm run preview` — `dist/` ビルドのローカル確認
+- `npm run test` — Vitest（happy-dom）でユニットテスト
+- `npm run test:coverage` — HTML & lcov カバレッジレポート生成
+- `npm run test:ui` — インタラクティブな Vitest UI
 
-- [開発ロードマップ](./docs/dev/roadmap.md) - フェーズ別の実装計画
-- **[次のステップガイド](./docs/dev/next-steps.md)** - 今すぐ始められるタスク
-- [テスト環境ガイド](./docs/dev/testing.md) - テストの実行方法とカバレッジ
-- [セットアップ手順](./docs/dev/setup.md)
-- [更新履歴](./docs/changelog.md)
+## ドキュメント一覧
 
-### 📖 その他
+| 種別 | ドキュメント                                     | 内容                                 |
+| ---- | ------------------------------------------------ | ------------------------------------ |
+| 概要 | [docs/README.md](./docs/README.md)               | ドキュメント全体の案内と索引         |
+| 設計 | [architecture.md](./docs/design/architecture.md) | レイヤー構造・データフロー・更新周期 |
+| 設計 | [simulation.md](./docs/design/simulation.md)     | シミュレーションルールと決定論の要点 |
+| 設計 | [rendering.md](./docs/design/rendering.md)       | 描画要素とレイアウト指針             |
+| 設計 | [parameters.md](./docs/design/parameters.md)     | バランス調整用パラメータの基準       |
+| 開発 | [setup.md](./docs/dev/setup.md)                  | 環境要件と初期セットアップ           |
+| 開発 | [testing.md](./docs/dev/testing.md)              | テスト実行とカバレッジ確認           |
+| 開発 | [roadmap.md](./docs/dev/roadmap.md)              | 直近の改善テーマ                     |
+| 履歴 | [changelog.md](./docs/changelog.md)              | 更新履歴と変更理由                   |
 
-全体概要は [docs/README.md](./docs/README.md) を参照
+不要になった情報は順次削除し、重要なドキュメントに集約しています。

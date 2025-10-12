@@ -1,43 +1,26 @@
-# Orbi Battle - 概要
+# ドキュメントガイド
 
-## コアコンセプト
+目的別に参照すべき資料をまとめています。情報を絞り、重複や履歴ドキュメントは削除済みです。
 
-- 上から見下ろしの**円形 2D オートバトル**。
-- プレイヤーは事前に装備・戦術をセットし、戦闘開始後は自動で戦う。
-- 戦闘は**シミュレーション結果を描画**する構造。
+## すぐに触る
 
-## 技術スタック
+- [dev/setup.md](./dev/setup.md) — 開発環境の前提条件と初期セットアップ
+- [dev/testing.md](./dev/testing.md) — テスト実行とカバレッジ確認の手順
 
-| 分野   | 使用技術                    |
-| ------ | --------------------------- |
-| 言語   | TypeScript                  |
-| 描画   | Phaser 3                    |
-| ビルド | Vite                        |
-| 乱数   | Mulberry32 (seed 固定)      |
-| 構造   | Simulation / Rendering 分離 |
+## 設計の理解
 
-## 現状
+- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、更新周期
+- [design/simulation.md](./design/simulation.md) — ファイターの行動ルールと決定論
+- [design/rendering.md](./design/rendering.md) — 描画要素とレイアウト指針
+- [design/parameters.md](./design/parameters.md) — デフォルト値と調整の目安
 
-### 実装済み機能
+## 継続的な改善
 
-- 1vs1 バトル実装済み
-- HP バー中央に実数表示
-- パラメータを Debug パネルで即時変更可能
-- **リプレイシステム**: 事前シミュレーション + ログ記録
-- **決定論的動作**: 同じシード・設定で同じ結果
-- 固定タイムステップシミュレーション (60Hz)
+- [dev/roadmap.md](./dev/roadmap.md) — 直近の改善テーマと優先度
+- [changelog.md](./changelog.md) — 過去の主な変更点
 
-### ドキュメント
+## ドキュメント運用ポリシー
 
-- 詳細な JSDoc コメント（全ファイル）
-- 設計ドキュメント充実
-  - [architecture.md](./design/architecture.md) - アーキテクチャ全体像
-  - [system.md](./design/system.md) - システム設計
-  - [simulation.md](./design/simulation.md) - シミュレーション仕様
-  - [parameters.md](./design/parameters.md) - パラメータ仕様
-  - [rendering.md](./design/rendering.md) - 描画仕様
-- 開発ドキュメント
-  - [roadmap.md](./dev/roadmap.md) - 今後の開発計画（フェーズ別）
-  - **[next-steps.md](./dev/next-steps.md)** - 次のステップ詳細ガイド
-  - [setup.md](./dev/setup.md) - セットアップ手順
-  - [tests.md](./dev/tests.md) - テスト環境ガイド
+- README とこのガイドを起点にすれば必要な情報へ辿れる構成に保つ
+- 情報が古くなった場合は更新ではなく削除・統合を優先
+- 拡張テーマや詳細設計は Pull Request / Issue へ移し、ドキュメントには確定事項のみ残す

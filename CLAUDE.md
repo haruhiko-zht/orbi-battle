@@ -198,14 +198,16 @@ Currently supports multiple teams with multiple fighters each. Teams are defined
 Comprehensive design docs are in [docs/design/](docs/design/):
 
 - [architecture.md](docs/design/architecture.md): Layer structure, data flow, extension points
-- [system.md](docs/design/system.md): System-wide component interactions
 - [simulation.md](docs/design/simulation.md): AI logic and determinism details
+- [rendering.md](docs/design/rendering.md): Rendering surface, layout decisions
+- [parameters.md](docs/design/parameters.md): Default stats and balancing notes
 
 Development guides in [docs/dev/](docs/dev/):
 
-- [tests.md](docs/dev/tests.md): Testing guide with coverage details
-- [roadmap.md](docs/dev/roadmap.md): Future development phases
-- [next-steps.md](docs/dev/next-steps.md): Immediate actionable tasks
+- [setup.md](docs/dev/setup.md): Environment requirements and onboarding
+- [testing.md](docs/dev/testing.md): Running Vitest and interpreting coverage
+- [roadmap.md](docs/dev/roadmap.md): Near-term priorities
+- [ai-system.md](docs/dev/ai-system.md): Strategy AI architecture
 
 ## GitHub Actions
 

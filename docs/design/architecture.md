@@ -14,6 +14,12 @@
 └─────────────────────────────────────┘
 ```
 
+```
+[Engine] → [simulateBattle] → [BattleLog]
+                                    ↓
+                              [BattleSim] ←→ [PhaserScene] ←→ [UI(DebugPanel)]
+```
+
 ## ディレクトリ構成
 
 ```
@@ -72,6 +78,12 @@ DebugPanel [Restart]
                  └─→ simulateBattle(newConfig)
                       └─→ BattleLog 再生成
 ```
+
+## 更新周期
+
+- **固定 Tick**: `tickRate`（既定値 60Hz）でシミュレーションを進める
+- **描画更新**: `requestAnimationFrame` を利用し最大 60FPS で描画
+- `BattleSim.fixedUpdate()` が内部バッファを持ち、描画フレームレートに依存せずロジックを前進
 
 ## 設計方針
 
