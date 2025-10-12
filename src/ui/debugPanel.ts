@@ -1,4 +1,4 @@
-import type { BattleConfig } from "../sim/types";
+import type { BattleConfig, FighterParams } from "../sim/types";
 
 /**
  * 数値入力フィールドを生成するヘルパー関数
@@ -35,36 +35,88 @@ export function createDebugPanel(cfg: BattleConfig) {
   const seed = numberInput("seed", cfg.seed);
   const radius = numberInput("radius", cfg.arenaRadius);
   const tick = numberInput("tick", cfg.tickRate);
-  const aHp = numberInput("A.hp", cfg.fighterA.hpMax);
-  const aAtk = numberInput("A.atk", cfg.fighterA.atk);
-  const aRange = numberInput("A.range", cfg.fighterA.range);
-  const aSpd = numberInput("A.spd", cfg.fighterA.speed);
-  const aCd = numberInput("A.cd", cfg.fighterA.cooldown, 0.01);
-  const bHp = numberInput("B.hp", cfg.fighterB.hpMax);
-  const bAtk = numberInput("B.atk", cfg.fighterB.atk);
-  const bRange = numberInput("B.range", cfg.fighterB.range);
-  const bSpd = numberInput("B.spd", cfg.fighterB.speed);
-  const bCd = numberInput("B.cd", cfg.fighterB.cooldown, 0.01);
 
   const btn = document.createElement("button");
   btn.textContent = "Restart";
 
-  const rows = [
-    seed,
-    radius,
-    tick,
-    aHp,
-    aAtk,
-    aRange,
-    aSpd,
-    aCd,
-    bHp,
-    bAtk,
-    bRange,
-    bSpd,
-    bCd,
-  ];
-  rows.forEach((r) => overlay.appendChild(r.wrap));
+  const headerRows = [seed, radius, tick];
+  headerRows.forEach((r) => overlay.appendChild(r.wrap));
+
+  type FighterControl = {
+    inputs: {
+      hpMax: HTMLInputElement;
+      atk: HTMLInputElement;
+      range: HTMLInputElement;
+      speed: HTMLInputElement;
+      cooldown: HTMLInputElement;
+    };
+  };
+
+  const controlsByTeam: Array<{
+    id: string;
+    fighters: FighterControl[];
+  }> = [];
+
+  cfg.teams.forEach((team) => {
+    const section = document.createElement("section");
+    const heading = document.createElement("h3");
+    heading.textContent = `Team ${team.id}`;
+    section.appendChild(heading);
+
+    if (team.fighters.length === 0) {
+      const notice = document.createElement("p");
+      notice.textContent = "No fighters configured.";
+      section.appendChild(notice);
+    }
+
+    const fighterControls: FighterControl[] = [];
+
+    team.fighters.forEach((fighter, fighterIndex) => {
+      const labelBase =
+        team.fighters.length === 1
+          ? `${team.id}`
+          : `${team.id}[${fighterIndex}]`;
+      const container = document.createElement("div");
+      container.className = "fighter-controls";
+
+      const fields: Array<{
+        key: keyof FighterParams;
+        suffix: string;
+        step?: number;
+      }> = [
+        { key: "hpMax", suffix: "hp" },
+        { key: "atk", suffix: "atk" },
+        { key: "range", suffix: "range" },
+        { key: "speed", suffix: "spd" },
+        { key: "cooldown", suffix: "cd", step: 0.01 },
+      ];
+
+      const inputs: FighterControl["inputs"] = {
+        hpMax: document.createElement("input"),
+        atk: document.createElement("input"),
+        range: document.createElement("input"),
+        speed: document.createElement("input"),
+        cooldown: document.createElement("input"),
+      };
+
+      fields.forEach(({ key, suffix, step }) => {
+        const { wrap, input } = numberInput(
+          `${labelBase}.${suffix}`,
+          fighter[key],
+          step
+        );
+        container.appendChild(wrap);
+        inputs[key] = input;
+      });
+
+      section.appendChild(container);
+      fighterControls.push({ inputs });
+    });
+
+    overlay.appendChild(section);
+    controlsByTeam.push({ id: team.id, fighters: fighterControls });
+  });
+
   overlay.appendChild(btn);
 
   // Restartボタンのクリックハンドラ
@@ -73,20 +125,16 @@ export function createDebugPanel(cfg: BattleConfig) {
       seed: Number(seed.input.value),
       arenaRadius: Number(radius.input.value),
       tickRate: Number(tick.input.value),
-      fighterA: {
-        hpMax: Number(aHp.input.value),
-        atk: Number(aAtk.input.value),
-        range: Number(aRange.input.value),
-        speed: Number(aSpd.input.value),
-        cooldown: Number(aCd.input.value),
-      },
-      fighterB: {
-        hpMax: Number(bHp.input.value),
-        atk: Number(bAtk.input.value),
-        range: Number(bRange.input.value),
-        speed: Number(bSpd.input.value),
-        cooldown: Number(bCd.input.value),
-      },
+      teams: controlsByTeam.map((teamCtrl) => ({
+        id: teamCtrl.id,
+        fighters: teamCtrl.fighters.map(({ inputs }) => ({
+          hpMax: Number(inputs.hpMax.value),
+          atk: Number(inputs.atk.value),
+          range: Number(inputs.range.value),
+          speed: Number(inputs.speed.value),
+          cooldown: Number(inputs.cooldown.value),
+        })),
+      })),
     };
     // @ts-expect-error
     window.$orbi?.reset?.(next);

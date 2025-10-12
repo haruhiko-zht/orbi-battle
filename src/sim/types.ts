@@ -25,10 +25,13 @@ export type BattleConfig = {
   arenaRadius: number;
   /** シミュレーションの更新頻度 [Hz] (例: 60 = 1秒間に60回更新) */
   tickRate: number;
-  /** ファイターA のパラメータ */
-  fighterA: FighterParams;
-  /** ファイターB のパラメータ */
-  fighterB: FighterParams;
+  /** チーム構成（複数チーム、各チーム複数ファイター対応） */
+  teams: Array<{
+    /** チームID（例: "A", "B"） */
+    id: string;
+    /** チーム内のファイター配列 */
+    fighters: FighterParams[];
+  }>;
 };
 
 /** 2次元ベクトル（位置・方向を表現） */
@@ -38,8 +41,10 @@ export type Vec2 = { x: number; y: number };
  * ファイターの現在の状態
  */
 export type FighterState = {
-  /** ファイターの識別子 */
-  id: "A" | "B";
+  /** ファイターの一意識別子（例: "A-0", "B-1"） */
+  id: string;
+  /** 所属チームID */
+  teamId: string;
   /** 現在位置（アリーナ中心が原点） */
   pos: Vec2;
   /** 現在のHP（0以下で敗北） */
@@ -58,10 +63,8 @@ export type FighterState = {
 export type BattleState = {
   /** 経過時間 [秒] */
   t: number;
-  /** 勝者（null = まだ決着していない） */
-  winner: "A" | "B" | null;
-  /** ファイターA の状態 */
-  a: FighterState;
-  /** ファイターB の状態 */
-  b: FighterState;
+  /** 勝者（null = まだ決着していない、チームID または "Draw"） */
+  winner: string | null;
+  /** 全ファイターの状態（フラット配列） */
+  fighters: FighterState[];
 };

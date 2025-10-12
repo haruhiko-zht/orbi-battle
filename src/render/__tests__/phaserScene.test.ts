@@ -21,20 +21,32 @@ describe("BattleScene type compatibility", () => {
       seed: 12345,
       arenaRadius: 200,
       tickRate: 60,
-      fighterA: {
-        hpMax: 100,
-        atk: 10,
-        range: 30,
-        speed: 50,
-        cooldown: 0.5,
-      },
-      fighterB: {
-        hpMax: 100,
-        atk: 10,
-        range: 30,
-        speed: 50,
-        cooldown: 0.5,
-      },
+      teams: [
+        {
+          id: "A",
+          fighters: [
+            {
+              hpMax: 100,
+              atk: 10,
+              range: 30,
+              speed: 50,
+              cooldown: 0.5,
+            },
+          ],
+        },
+        {
+          id: "B",
+          fighters: [
+            {
+              hpMax: 100,
+              atk: 10,
+              range: 30,
+              speed: 50,
+              cooldown: 0.5,
+            },
+          ],
+        },
+      ],
     };
 
     expect(config).toBeDefined();
@@ -48,24 +60,36 @@ describe("BattleScene type compatibility", () => {
       seed: 99999,
       arenaRadius: 300,
       tickRate: 120,
-      fighterA: {
-        hpMax: 150,
-        atk: 15,
-        range: 40,
-        speed: 60,
-        cooldown: 0.4,
-      },
-      fighterB: {
-        hpMax: 180,
-        atk: 18,
-        range: 45,
-        speed: 65,
-        cooldown: 0.5,
-      },
+      teams: [
+        {
+          id: "A",
+          fighters: [
+            {
+              hpMax: 150,
+              atk: 15,
+              range: 40,
+              speed: 60,
+              cooldown: 0.4,
+            },
+          ],
+        },
+        {
+          id: "B",
+          fighters: [
+            {
+              hpMax: 180,
+              atk: 18,
+              range: 45,
+              speed: 65,
+              cooldown: 0.5,
+            },
+          ],
+        },
+      ],
     };
 
-    expect(config.fighterA.hpMax).toBe(150);
-    expect(config.fighterB.atk).toBe(18);
+    expect(config.teams[0].fighters[0].hpMax).toBe(150);
+    expect(config.teams[1].fighters[0].atk).toBe(18);
   });
 });
 

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import type { BattleConfig, BattleState } from "../sim/types";
+import type { BattleConfig, BattleState, FighterState } from "../sim/types";
 import { BattleSim } from "../sim/battle";
-import { defaults } from "../config/defaults";
+import { defaults, defaults3v3 } from "../config/defaults";
 
 /**
  * Phaser バトルシーン
@@ -12,23 +12,28 @@ export class BattleScene extends Phaser.Scene {
   /** バトルシミュレーター */
   sim!: BattleSim;
   /** 現在のバトル設定 */
-  cfg: BattleConfig = structuredClone(defaults);
+  cfg: BattleConfig = structuredClone(defaults3v3);
   /** アリーナ（円形境界）の描画オブジェクト */
   arena!: Phaser.GameObjects.Arc;
-  /** ファイターAの描画オブジェクト（緑） */
-  a!: Phaser.GameObjects.Arc;
-  /** ファイターBの描画オブジェクト（赤） */
-  b!: Phaser.GameObjects.Arc;
-  /** ファイターAのHPバー */
-  aHp!: Phaser.GameObjects.Graphics;
-  /** ファイターBのHPバー */
-  bHp!: Phaser.GameObjects.Graphics;
-  /** ファイターAのHPテキスト */
-  aHpText!: Phaser.GameObjects.Text;
-  /** ファイターBのHPテキスト */
-  bHpText!: Phaser.GameObjects.Text;
+  /** ファイターの描画オブジェクトマップ（ファイターID -> 円形） */
+  fighters: Map<string, Phaser.GameObjects.Arc> = new Map();
+  /** ファイターのHPバーマップ（ファイターID -> Graphics） */
+  fighterHpBars: Map<string, Phaser.GameObjects.Graphics> = new Map();
+  /** ファイターのHPテキストマップ（ファイターID -> Text） */
+  fighterHpTexts: Map<string, Phaser.GameObjects.Text> = new Map();
+  /** チームカラーのマップ（チームID -> 16進カラー値） */
+  private teamColors: Map<string, number> = new Map();
   /** 勝敗表示テキスト */
   result!: Phaser.GameObjects.Text;
+
+  private static readonly colorPalette = [
+    0x7bd389, // soft green
+    0xf97070, // soft red
+    0x6cc0f7, // sky blue
+    0xf7f36c, // warm yellow
+    0xc27bf7, // lavender
+    0xf79bd1, // pink
+  ];
 
   constructor() {
     super("Battle");
@@ -46,29 +51,16 @@ export class BattleScene extends Phaser.Scene {
     const cy = this.scale.height / 2;
 
     this.sim = new BattleSim(this.cfg);
+    this.initializeTeamColors(this.cfg);
 
     // アリーナ（円形境界）
     this.arena = this.add
       .circle(cx, cy, this.cfg.arenaRadius, 0x0, 0)
       .setStrokeStyle(2, 0x4a90e2);
 
-    // ファイター（初期位置は仮、renderStateで更新される）
-    this.a = this.add.circle(cx - this.cfg.arenaRadius * 0.7, cy, 10, 0x7bd389);
-    this.b = this.add.circle(cx + this.cfg.arenaRadius * 0.7, cy, 10, 0xf97070);
-
-    // HPバー用のGraphicsオブジェクト
-    this.aHp = this.add.graphics();
-    this.bHp = this.add.graphics();
-    this.aHpText = this.add.text(0, 0, "", {
-      color: "#ffffff",
-      fontSize: "12px",
-      fontFamily: "monospace",
-    });
-    this.bHpText = this.add.text(0, 0, "", {
-      color: "#ffffff",
-      fontSize: "12px",
-      fontFamily: "monospace",
-    });
+    // 全ファイターの描画オブジェクトを動的に生成
+    const initialState = this.sim.fixedUpdate(0);
+    this.buildFighterObjects(initialState, cx, cy);
 
     // 勝敗表示
     this.result = this.add.text(12, 12, "", { color: "#ffffff" });
@@ -82,7 +74,7 @@ export class BattleScene extends Phaser.Scene {
     };
 
     // 初期状態を描画
-    this.renderState(this.sim.fixedUpdate(0));
+    this.renderState(initialState);
   }
 
   /**
@@ -92,7 +84,29 @@ export class BattleScene extends Phaser.Scene {
   reset(cfg: BattleConfig) {
     this.cfg = structuredClone(cfg);
     this.sim.reset(this.cfg);
-    this.renderState(this.sim.fixedUpdate(0));
+    this.initializeTeamColors(this.cfg);
+
+    // 既存の描画オブジェクトを全て削除
+    for (const circle of this.fighters.values()) {
+      circle.destroy();
+    }
+    for (const hpBar of this.fighterHpBars.values()) {
+      hpBar.destroy();
+    }
+    for (const hpText of this.fighterHpTexts.values()) {
+      hpText.destroy();
+    }
+    this.fighters.clear();
+    this.fighterHpBars.clear();
+    this.fighterHpTexts.clear();
+
+    // 新しいファイター構成で描画オブジェクトを再生成
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    const initialState = this.sim.fixedUpdate(0);
+    this.buildFighterObjects(initialState, cx, cy);
+
+    this.renderState(initialState);
   }
 
   /**
@@ -118,48 +132,110 @@ export class BattleScene extends Phaser.Scene {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
 
-    // Fighters
-    // state.pos は原点(0,0)基準 → 画面中心へ移動
-    this.a.setPosition(cx + state.a.pos.x, cy + state.a.pos.y);
-    this.b.setPosition(cx + state.b.pos.x, cy + state.b.pos.y);
+    // 全ファイターの位置を更新
+    for (const fighter of state.fighters) {
+      const circle = this.fighters.get(fighter.id);
+      if (circle) {
+        circle.setPosition(cx + fighter.pos.x, cy + fighter.pos.y);
+        // 死亡時は半透明に
+        circle.setAlpha(fighter.alive ? 1.0 : 0.3);
+      }
+    }
 
-    // HP bars
-    const w = 320,
-      h = 8;
-    const pad = 6;
-    this.aHp.clear();
-    this.bHp.clear();
+    // HPバーの描画（下から上に縦積み）
+    const w = 320;
+    const h = 8;
+    const pad = 2;
+    let yOffset = this.scale.height - h;
+    const orderedFighters = this.getSortedFighters(state.fighters);
 
-    const aRatio = state.a.hp / state.a.params.hpMax;
-    const bRatio = state.b.hp / state.b.params.hpMax;
+    for (const fighter of orderedFighters) {
+      const hpBar = this.fighterHpBars.get(fighter.id);
+      const hpText = this.fighterHpTexts.get(fighter.id);
+      if (!hpBar || !hpText) continue;
 
-    const aY = this.scale.height - 2 * h - pad;
-    const bY = this.scale.height - h;
+      hpBar.clear();
+      const ratio = fighter.params.hpMax
+        ? fighter.hp / fighter.params.hpMax
+        : 0;
+      const color = this.getTeamColor(fighter.teamId);
 
-    // 背景バー
-    this.aHp.fillStyle(0x333333).fillRect(20, aY, w, h);
-    this.bHp.fillStyle(0x333333).fillRect(20, bY, w, h);
+      // 背景バー
+      hpBar.fillStyle(0x333333).fillRect(20, yOffset, w, h);
+      // 残量バー
+      hpBar.fillStyle(color).fillRect(20, yOffset, w * ratio, h);
 
-    // 残量バー
-    this.aHp.fillStyle(0x7bd389).fillRect(20, aY, w * aRatio, h);
-    this.bHp.fillStyle(0xf97070).fillRect(20, bY, w * bRatio, h);
+      // HPテキスト
+      const text = `${fighter.id}: ${fighter.hp.toFixed(1)} / ${
+        fighter.params.hpMax
+      }`;
+      hpText.setText(text);
+      hpText.setPosition(
+        20 + w / 2 - hpText.width / 2,
+        yOffset + h / 2 - hpText.height / 2
+      );
 
-    // HP Text Centered (バー中央に重ねる)
-    const aHpText = `${state.a.hp.toFixed(1)} / ${state.a.params.hpMax}`;
-    const bHpText = `${state.b.hp.toFixed(1)} / ${state.b.params.hpMax}`;
-
-    this.aHpText.setText(aHpText);
-    this.bHpText.setText(bHpText);
-
-    this.aHpText.setPosition(
-      20 + w / 2 - this.aHpText.width / 2,
-      aY + h / 2 - this.aHpText.height / 2
-    );
-    this.bHpText.setPosition(
-      20 + w / 2 - this.bHpText.width / 2,
-      bY + h / 2 - this.bHpText.height / 2
-    );
+      yOffset -= h + pad;
+    }
 
     this.result.setText(state.winner ? `WINNER: ${state.winner}` : "");
+  }
+
+  /**
+   * 初期状態に合わせて描画オブジェクトを生成
+   */
+  private buildFighterObjects(state: BattleState, cx: number, cy: number) {
+    for (const fighter of state.fighters) {
+      const color = this.getTeamColor(fighter.teamId);
+      const circle = this.add.circle(cx, cy, 10, color);
+      this.fighters.set(fighter.id, circle);
+
+      const hpBar = this.add.graphics();
+      this.fighterHpBars.set(fighter.id, hpBar);
+
+      const hpText = this.add.text(0, 0, "", {
+        color: "#ffffff",
+        fontSize: "12px",
+        fontFamily: "monospace",
+      });
+      this.fighterHpTexts.set(fighter.id, hpText);
+    }
+  }
+
+  /**
+   * チームカラーを初期化
+   */
+  private initializeTeamColors(cfg: BattleConfig) {
+    this.teamColors.clear();
+    cfg.teams.forEach((team, index) => {
+      const palette = BattleScene.colorPalette;
+      const color = palette[index % palette.length];
+      this.teamColors.set(team.id, color);
+    });
+  }
+
+  /**
+   * チームごとの色を取得（未登録の場合はパレットから割り当て）
+   */
+  private getTeamColor(teamId: string): number {
+    if (!this.teamColors.has(teamId)) {
+      const palette = BattleScene.colorPalette;
+      const color = palette[this.teamColors.size % palette.length];
+      this.teamColors.set(teamId, color);
+    }
+    return this.teamColors.get(teamId)!;
+  }
+
+  /**
+   * 表示用にファイターをチーム順で並び替える
+   */
+  private getSortedFighters(fighters: FighterState[]): FighterState[] {
+    const teamOrder = this.cfg.teams.map((team) => team.id);
+    return [...fighters].sort((a, b) => {
+      const teamDiff =
+        teamOrder.indexOf(a.teamId) - teamOrder.indexOf(b.teamId);
+      if (teamDiff !== 0) return teamDiff;
+      return a.id.localeCompare(b.id);
+    });
   }
 }

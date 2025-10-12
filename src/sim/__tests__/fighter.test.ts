@@ -60,7 +60,8 @@ describe("FighterParams type consistency", () => {
 describe("FighterState type consistency", () => {
   it("有効なFighterStateオブジェクトを作成できる", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 10, y: 20 },
       hp: 80,
       cooldown: 0.3,
@@ -74,7 +75,8 @@ describe("FighterState type consistency", () => {
       },
     };
 
-    expect(state.id).toBe("A");
+    expect(state.id).toBe("A-0");
+    expect(state.teamId).toBe("A");
     expect(state.pos.x).toBe(10);
     expect(state.pos.y).toBe(20);
     expect(state.hp).toBe(80);
@@ -83,9 +85,10 @@ describe("FighterState type consistency", () => {
     expect(state.params.hpMax).toBe(100);
   });
 
-  it("id は 'A' または 'B' のみ", () => {
+  it("teamId は 'A' または 'B'", () => {
     const stateA: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 0, y: 0 },
       hp: 100,
       cooldown: 0,
@@ -100,7 +103,8 @@ describe("FighterState type consistency", () => {
     };
 
     const stateB: FighterState = {
-      id: "B",
+      id: "B-0",
+      teamId: "B",
       pos: { x: 0, y: 0 },
       hp: 100,
       cooldown: 0,
@@ -114,15 +118,16 @@ describe("FighterState type consistency", () => {
       },
     };
 
-    expect(stateA.id).toBe("A");
-    expect(stateB.id).toBe("B");
-    expect(["A", "B"]).toContain(stateA.id);
-    expect(["A", "B"]).toContain(stateB.id);
+    expect(stateA.teamId).toBe("A");
+    expect(stateB.teamId).toBe("B");
+    expect(["A", "B"]).toContain(stateA.teamId);
+    expect(["A", "B"]).toContain(stateB.teamId);
   });
 
   it("死亡状態を表現できる", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 10, y: 20 },
       hp: 0,
       cooldown: 0,
@@ -142,7 +147,8 @@ describe("FighterState type consistency", () => {
 
   it("すべてのフィールドが必須", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 10, y: 20 },
       hp: 80,
       cooldown: 0.3,
@@ -157,6 +163,7 @@ describe("FighterState type consistency", () => {
     };
 
     expect(state).toHaveProperty("id");
+    expect(state).toHaveProperty("teamId");
     expect(state).toHaveProperty("pos");
     expect(state).toHaveProperty("hp");
     expect(state).toHaveProperty("cooldown");
@@ -205,7 +212,8 @@ describe("Vec2 type consistency", () => {
 describe("Fighter behavior validation", () => {
   it("HPはhpMax以下であるべき", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 0, y: 0 },
       hp: 80,
       cooldown: 0,
@@ -224,7 +232,8 @@ describe("Fighter behavior validation", () => {
 
   it("死亡時はHPが0でaliveがfalse", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 0, y: 0 },
       hp: 0,
       cooldown: 0,
@@ -244,7 +253,8 @@ describe("Fighter behavior validation", () => {
 
   it("クールダウンは0以上であるべき", () => {
     const state: FighterState = {
-      id: "A",
+      id: "A-0",
+      teamId: "A",
       pos: { x: 0, y: 0 },
       hp: 100,
       cooldown: 0.3,

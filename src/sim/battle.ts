@@ -31,7 +31,7 @@ export function simulateBattle(
   }
 
   return {
-    version: 1,
+    version: 2,
     config: cloneConfig(cfg),
     frames,
   };

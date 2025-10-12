@@ -1,32 +1,49 @@
 import { describe, it, expect } from "vitest";
 import { simulateBattle, BattleSim } from "../battle";
-import type { BattleConfig } from "../types";
+import type { BattleConfig, FighterParams } from "../types";
+
+// テストヘルパー: 1v1 の BattleConfig を作成
+function makeConfig(
+  seed: number,
+  fighterA: FighterParams,
+  fighterB: FighterParams,
+  arenaRadius = 220,
+  tickRate = 60
+): BattleConfig {
+  return {
+    seed,
+    arenaRadius,
+    tickRate,
+    teams: [
+      { id: "A", fighters: [fighterA] },
+      { id: "B", fighters: [fighterB] },
+    ],
+  };
+}
 
 describe("simulateBattle", () => {
-  const defaultConfig: BattleConfig = {
-    seed: 99999,
-    arenaRadius: 220,
-    tickRate: 60,
-    fighterA: {
+  const defaultConfig = makeConfig(
+    99999,
+    {
       hpMax: 120,
       atk: 10,
       range: 36,
       speed: 75,
       cooldown: 0.45,
     },
-    fighterB: {
+    {
       hpMax: 120,
       atk: 10,
       range: 36,
       speed: 75,
       cooldown: 0.45,
-    },
-  };
+    }
+  );
 
   it("バトルログが正しく生成される", () => {
     const log = simulateBattle(defaultConfig);
 
-    expect(log.version).toBe(1);
+    expect(log.version).toBe(2);
     expect(log.config).toEqual(defaultConfig);
     expect(log.frames.length).toBeGreaterThan(0);
     expect(log.frames[0].t).toBe(0);
@@ -38,10 +55,16 @@ describe("simulateBattle", () => {
 
     expect(firstFrame.t).toBe(0);
     expect(firstFrame.winner).toBeNull();
-    expect(firstFrame.a.hp).toBe(defaultConfig.fighterA.hpMax);
-    expect(firstFrame.b.hp).toBe(defaultConfig.fighterB.hpMax);
-    expect(firstFrame.a.alive).toBe(true);
-    expect(firstFrame.b.alive).toBe(true);
+
+    const fighterA = firstFrame.fighters.find((f) => f.teamId === "A");
+    const fighterB = firstFrame.fighters.find((f) => f.teamId === "B");
+
+    expect(fighterA).toBeDefined();
+    expect(fighterB).toBeDefined();
+    expect(fighterA!.hp).toBe(defaultConfig.teams[0].fighters[0].hpMax);
+    expect(fighterB!.hp).toBe(defaultConfig.teams[1].fighters[0].hpMax);
+    expect(fighterA!.alive).toBe(true);
+    expect(fighterB!.alive).toBe(true);
   });
 
   it("勝者が決まる", () => {
@@ -53,18 +76,22 @@ describe("simulateBattle", () => {
     expect(lastFrame.winner).toMatch(/^[AB]$/);
   });
 
-  it("勝者が決まったら片方のファイターが死亡している", () => {
+  it("勝者が決まったら片方のチームが全滅している", () => {
     const log = simulateBattle(defaultConfig, { maxSeconds: 30 });
     const lastFrame = log.frames[log.frames.length - 1];
 
     if (lastFrame.winner === "A") {
-      expect(lastFrame.a.alive).toBe(true);
-      expect(lastFrame.b.alive).toBe(false);
-      expect(lastFrame.b.hp).toBe(0);
+      const teamA = lastFrame.fighters.filter((f) => f.teamId === "A");
+      const teamB = lastFrame.fighters.filter((f) => f.teamId === "B");
+      expect(teamA.some((f) => f.alive)).toBe(true);
+      expect(teamB.every((f) => !f.alive)).toBe(true);
+      expect(teamB.every((f) => f.hp === 0)).toBe(true);
     } else if (lastFrame.winner === "B") {
-      expect(lastFrame.b.alive).toBe(true);
-      expect(lastFrame.a.alive).toBe(false);
-      expect(lastFrame.a.hp).toBe(0);
+      const teamA = lastFrame.fighters.filter((f) => f.teamId === "A");
+      const teamB = lastFrame.fighters.filter((f) => f.teamId === "B");
+      expect(teamB.some((f) => f.alive)).toBe(true);
+      expect(teamA.every((f) => !f.alive)).toBe(true);
+      expect(teamA.every((f) => f.hp === 0)).toBe(true);
     }
   });
 
@@ -102,25 +129,24 @@ describe("simulateBattle", () => {
   });
 
   it("非対称な設定で強い方が勝つ", () => {
-    const asymmetricConfig: BattleConfig = {
-      seed: 12345,
-      arenaRadius: 200,
-      tickRate: 60,
-      fighterA: {
+    const asymmetricConfig = makeConfig(
+      12345,
+      {
         hpMax: 1000,
         atk: 100,
         range: 100,
         speed: 100,
         cooldown: 0.1,
       },
-      fighterB: {
+      {
         hpMax: 50,
         atk: 1,
         range: 30,
         speed: 10,
         cooldown: 1.0,
       },
-    };
+      200
+    );
 
     const log = simulateBattle(asymmetricConfig, { maxSeconds: 30 });
     const lastFrame = log.frames[log.frames.length - 1];
@@ -139,25 +165,24 @@ describe("simulateBattle", () => {
   });
 
   it("フレーム数が正しい（勝者が決まった場合）", () => {
-    const config: BattleConfig = {
-      seed: 12345,
-      arenaRadius: 200,
-      tickRate: 60,
-      fighterA: {
+    const config = makeConfig(
+      12345,
+      {
         hpMax: 100,
         atk: 50,
         range: 100,
         speed: 100,
         cooldown: 0.1,
       },
-      fighterB: {
+      {
         hpMax: 100,
         atk: 50,
         range: 100,
         speed: 100,
         cooldown: 0.1,
       },
-    };
+      200
+    );
 
     const log = simulateBattle(config, { maxSeconds: 30 });
 
@@ -171,32 +196,31 @@ describe("simulateBattle", () => {
 });
 
 describe("BattleSim", () => {
-  const defaultConfig: BattleConfig = {
-    seed: 12345,
-    arenaRadius: 200,
-    tickRate: 60,
-    fighterA: {
+  const defaultConfig = makeConfig(
+    12345,
+    {
       hpMax: 100,
       atk: 10,
       range: 30,
       speed: 50,
       cooldown: 0.5,
     },
-    fighterB: {
+    {
       hpMax: 100,
       atk: 10,
       range: 30,
       speed: 50,
       cooldown: 0.5,
     },
-  };
+    200
+  );
 
   it("コンストラクタでシミュレーションが実行される", () => {
     const sim = new BattleSim(defaultConfig);
 
     expect(sim).toBeDefined();
     const log = sim.getLog();
-    expect(log.version).toBe(1);
+    expect(log.version).toBe(2);
     expect(log.frames.length).toBeGreaterThan(0);
   });
 
@@ -204,7 +228,7 @@ describe("BattleSim", () => {
     const sim = new BattleSim(defaultConfig);
     const log = sim.getLog();
 
-    expect(log.version).toBe(1);
+    expect(log.version).toBe(2);
     expect(log.config).toEqual(defaultConfig);
     expect(log.frames).toBeDefined();
     expect(Array.isArray(log.frames)).toBe(true);
@@ -253,25 +277,24 @@ describe("BattleSim", () => {
   });
 
   it("バトル終了後はrunningがfalseになる", () => {
-    const quickConfig: BattleConfig = {
-      seed: 12345,
-      arenaRadius: 200,
-      tickRate: 60,
-      fighterA: {
+    const quickConfig = makeConfig(
+      12345,
+      {
         hpMax: 10,
         atk: 100,
         range: 500,
         speed: 100,
         cooldown: 0.1,
       },
-      fighterB: {
+      {
         hpMax: 10,
         atk: 1,
         range: 30,
         speed: 10,
         cooldown: 1.0,
       },
-    };
+      200
+    );
 
     const sim = new BattleSim(quickConfig);
     const dt = 1 / quickConfig.tickRate;
@@ -286,25 +309,24 @@ describe("BattleSim", () => {
   });
 
   it("バトル終了後はfixedUpdate()で時間が進まない", () => {
-    const quickConfig: BattleConfig = {
-      seed: 12345,
-      arenaRadius: 200,
-      tickRate: 60,
-      fighterA: {
+    const quickConfig = makeConfig(
+      12345,
+      {
         hpMax: 10,
         atk: 100,
         range: 500,
         speed: 100,
         cooldown: 0.1,
       },
-      fighterB: {
+      {
         hpMax: 10,
         atk: 1,
         range: 30,
         speed: 10,
         cooldown: 1.0,
       },
-    };
+      200
+    );
 
     const sim = new BattleSim(quickConfig);
     const dt = 1 / quickConfig.tickRate;
@@ -337,10 +359,13 @@ describe("BattleSim", () => {
     expect(stateBeforeReset.t).toBeGreaterThan(0);
 
     // リセット
-    const newConfig: BattleConfig = {
-      ...defaultConfig,
-      seed: 99999,
-    };
+    const newConfig = makeConfig(
+      99999,
+      defaultConfig.teams[0].fighters[0],
+      defaultConfig.teams[1].fighters[0],
+      defaultConfig.arenaRadius,
+      defaultConfig.tickRate
+    );
     sim.reset(newConfig);
 
     // 初期状態に戻る
@@ -352,11 +377,13 @@ describe("BattleSim", () => {
   it("reset()後のログは新しい設定に基づく", () => {
     const sim = new BattleSim(defaultConfig);
 
-    const newConfig: BattleConfig = {
-      ...defaultConfig,
-      seed: 99999,
-      arenaRadius: 300,
-    };
+    const newConfig = makeConfig(
+      99999,
+      defaultConfig.teams[0].fighters[0],
+      defaultConfig.teams[1].fighters[0],
+      300,
+      defaultConfig.tickRate
+    );
     sim.reset(newConfig);
 
     const log = sim.getLog();

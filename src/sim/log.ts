@@ -7,7 +7,7 @@ import type { BattleConfig, BattleState, FighterState } from "./types";
  */
 export type BattleLog = {
   /** ログフォーマットのバージョン（将来の互換性のため） */
-  version: 1;
+  version: 2;
   /** このバトルの設定 */
   config: BattleConfig;
   /** 全フレームの状態スナップショット（frames[0]が初期状態） */
@@ -22,8 +22,7 @@ export function cloneState(state: BattleState): BattleState {
   return {
     t: state.t,
     winner: state.winner,
-    a: cloneFighter(state.a),
-    b: cloneFighter(state.b),
+    fighters: state.fighters.map(cloneFighter),
   };
 }
 
@@ -33,6 +32,7 @@ export function cloneState(state: BattleState): BattleState {
 function cloneFighter(f: FighterState): FighterState {
   return {
     id: f.id,
+    teamId: f.teamId,
     pos: { ...f.pos },
     hp: f.hp,
     cooldown: f.cooldown,
@@ -49,7 +49,9 @@ export function cloneConfig(cfg: BattleConfig): BattleConfig {
     seed: cfg.seed,
     arenaRadius: cfg.arenaRadius,
     tickRate: cfg.tickRate,
-    fighterA: { ...cfg.fighterA },
-    fighterB: { ...cfg.fighterB },
+    teams: cfg.teams.map((team) => ({
+      id: team.id,
+      fighters: team.fighters.map((f) => ({ ...f })),
+    })),
   };
 }

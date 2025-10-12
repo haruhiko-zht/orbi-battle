@@ -1,4 +1,4 @@
-import type { BattleConfig, BattleState, Vec2 } from "./types";
+import type { BattleConfig, BattleState, FighterState, Vec2 } from "./types";
 import { makeRng } from "./rng";
 
 /**
@@ -46,28 +46,73 @@ export class Engine {
     this.dt = 1 / cfg.tickRate;
     this.rng = makeRng(cfg.seed);
 
-    // 初期配置: アリーナ中心を原点とし、X軸上に対向配置
+    // 初期配置: チーム数に応じて円周を等分し、各セクション内で等間隔配置
     const r = cfg.arenaRadius * 0.7;
+    const fighters: BattleState["fighters"] = [];
+    const teamCount = cfg.teams.length;
+    const sectorSpan = (Math.PI * 2) / Math.max(1, teamCount);
+    const baseRotation = Math.PI; // チームインデックス0をアリーナ下側に配置
+
+    cfg.teams.forEach((team, teamIndex) => {
+      const numFighters = team.fighters.length;
+      const startAngle = baseRotation + sectorSpan * teamIndex;
+      const step = sectorSpan / Math.max(1, numFighters + 1);
+
+      team.fighters.forEach((params, fighterIndex) => {
+        const angle = startAngle + step * (fighterIndex + 1);
+
+        fighters.push({
+          id: `${team.id}-${fighterIndex}`,
+          teamId: team.id,
+          pos: {
+            x: Math.cos(angle) * r,
+            y: Math.sin(angle) * r,
+          },
+          hp: params.hpMax,
+          cooldown: 0,
+          alive: true,
+          params,
+        });
+      });
+    });
+
     this.state = {
       t: 0,
       winner: null,
-      a: {
-        id: "A",
-        pos: { x: -r, y: 0 },
-        hp: cfg.fighterA.hpMax,
-        cooldown: 0,
-        alive: true,
-        params: cfg.fighterA,
-      },
-      b: {
-        id: "B",
-        pos: { x: +r, y: 0 },
-        hp: cfg.fighterB.hpMax,
-        cooldown: 0,
-        alive: true,
-        params: cfg.fighterB,
-      },
+      fighters,
     };
+  }
+
+  /**
+   * 最も近い生存している敵を選択
+   * @param self 行動するファイター
+   * @returns ターゲット（いなければ null）
+   */
+  private pickNearestTarget(self: FighterState): FighterState | null {
+    const enemies = this.state.fighters.filter(
+      (f) => f.alive && f.teamId !== self.teamId
+    );
+
+    if (enemies.length === 0) return null;
+
+    let nearest = enemies[0];
+    let minDist = Math.hypot(
+      nearest.pos.x - self.pos.x,
+      nearest.pos.y - self.pos.y
+    );
+
+    for (const enemy of enemies) {
+      const dist = Math.hypot(
+        enemy.pos.x - self.pos.x,
+        enemy.pos.y - self.pos.y
+      );
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = enemy;
+      }
+    }
+
+    return nearest;
   }
 
   /**
@@ -77,16 +122,22 @@ export class Engine {
    * - 境界チェック
    *
    * @param self 行動するファイター
-   * @param enemy 相手ファイター
    */
-  private stepFighter(self: BattleState["a"], enemy: BattleState["b"]) {
+  private stepFighter(self: FighterState) {
     if (!self.alive) return;
-    const dx = enemy.pos.x - self.pos.x;
-    const dy = enemy.pos.y - self.pos.y;
+
+    // ターゲット選択
+    const target = this.pickNearestTarget(self);
+    if (!target) return; // 敵が全滅していれば何もしない
+
+    const dx = target.pos.x - self.pos.x;
+    const dy = target.pos.y - self.pos.y;
     const dist = Math.hypot(dx, dy);
 
     // クールダウン更新
-    if (self.cooldown > 0) self.cooldown = Math.max(0, self.cooldown - this.dt);
+    if (self.cooldown > 0) {
+      self.cooldown = Math.max(0, self.cooldown - this.dt);
+    }
 
     // 基本AI: 射程外なら接近、射程内なら攻撃
     const p = self.params;
@@ -97,12 +148,12 @@ export class Engine {
       self.pos.y += v.y * p.speed * this.dt;
     } else {
       // 攻撃判定
-      if (self.cooldown === 0 && enemy.alive) {
-        enemy.hp -= p.atk;
+      if (self.cooldown === 0 && target.alive) {
+        target.hp -= p.atk;
         self.cooldown = p.cooldown;
-        if (enemy.hp <= 0) {
-          enemy.alive = false;
-          enemy.hp = 0;
+        if (target.hp <= 0) {
+          target.alive = false;
+          target.hp = 0;
         }
       }
     }
@@ -113,7 +164,7 @@ export class Engine {
 
   /**
    * 1フレーム分のシミュレーションを実行
-   * - 両ファイターの行動処理
+   * - 全ファイターの行動処理
    * - 勝敗判定
    * - 時刻更新
    *
@@ -121,19 +172,30 @@ export class Engine {
    */
   update(): BattleState {
     const s = this.state;
-    if (!s.winner) {
-      // 両ファイターを同時に更新
-      this.stepFighter(s.a, s.b);
-      this.stepFighter(s.b, s.a);
 
-      // 勝敗判定
-      if (!s.a.alive || !s.b.alive) {
-        s.winner = !s.a.alive ? "B" : "A";
+    if (!s.winner) {
+      // 全ファイターを順次更新
+      for (const fighter of s.fighters) {
+        this.stepFighter(fighter);
+      }
+
+      // 勝敗判定: いずれかのチームが全滅したか確認
+      const teamsAlive = new Set(
+        s.fighters.filter((f) => f.alive).map((f) => f.teamId)
+      );
+
+      if (teamsAlive.size === 1) {
+        // 1チームだけ生き残っている
+        s.winner = Array.from(teamsAlive)[0];
+      } else if (teamsAlive.size === 0) {
+        // 全滅（引き分け、稀だが安全のため）
+        s.winner = "Draw";
       }
 
       // 時刻を進める
       s.t += this.dt;
     }
+
     return s;
   }
 }

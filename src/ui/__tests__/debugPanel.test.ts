@@ -7,20 +7,32 @@ describe("createDebugPanel", () => {
     seed: 12345,
     arenaRadius: 200,
     tickRate: 60,
-    fighterA: {
-      hpMax: 100,
-      atk: 10,
-      range: 30,
-      speed: 50,
-      cooldown: 0.5,
-    },
-    fighterB: {
-      hpMax: 120,
-      atk: 12,
-      range: 35,
-      speed: 55,
-      cooldown: 0.6,
-    },
+    teams: [
+      {
+        id: "A",
+        fighters: [
+          {
+            hpMax: 100,
+            atk: 10,
+            range: 30,
+            speed: 50,
+            cooldown: 0.5,
+          },
+        ],
+      },
+      {
+        id: "B",
+        fighters: [
+          {
+            hpMax: 120,
+            atk: 12,
+            range: 35,
+            speed: 55,
+            cooldown: 0.6,
+          },
+        ],
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -134,20 +146,32 @@ describe("createDebugPanel", () => {
       seed: 99999,
       arenaRadius: 300,
       tickRate: 60,
-      fighterA: {
-        hpMax: 150,
-        atk: 10,
-        range: 30,
-        speed: 50,
-        cooldown: 0.5,
-      },
-      fighterB: {
-        hpMax: 120,
-        atk: 12,
-        range: 35,
-        speed: 55,
-        cooldown: 0.6,
-      },
+      teams: [
+        {
+          id: "A",
+          fighters: [
+            {
+              hpMax: 150,
+              atk: 10,
+              range: 30,
+              speed: 50,
+              cooldown: 0.5,
+            },
+          ],
+        },
+        {
+          id: "B",
+          fighters: [
+            {
+              hpMax: 120,
+              atk: 12,
+              range: 35,
+              speed: 55,
+              cooldown: 0.6,
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -193,6 +217,40 @@ describe("createDebugPanel", () => {
     const inputs = overlay.querySelectorAll('input[type="number"]');
     expect((inputs[0] as HTMLInputElement).value).toBe("99999");
     expect((inputs[1] as HTMLInputElement).value).toBe("300");
+  });
+
+  it("複数ファイターを持つチームでも入力フィールドを生成する", () => {
+    const config: BattleConfig = {
+      seed: 11111,
+      arenaRadius: 250,
+      tickRate: 60,
+      teams: [
+        {
+          id: "A",
+          fighters: [
+            { hpMax: 100, atk: 10, range: 30, speed: 50, cooldown: 0.5 },
+            { hpMax: 80, atk: 12, range: 28, speed: 60, cooldown: 0.4 },
+          ],
+        },
+        {
+          id: "B",
+          fighters: [
+            { hpMax: 110, atk: 11, range: 32, speed: 52, cooldown: 0.6 },
+          ],
+        },
+      ],
+    };
+
+    createDebugPanel(config);
+
+    const overlay = document.getElementById("overlay")!;
+    const labels = Array.from(overlay.querySelectorAll("label")).map(
+      (label) => label.textContent
+    );
+
+    expect(labels).toContain("A[1].hp");
+    expect(labels).toContain("A[0].atk");
+    expect(labels).toContain("B.hp");
   });
 
   it("step属性が正しく設定される", () => {
