@@ -38,6 +38,12 @@ export function validateBattleConfig(cfg: BattleConfig) {
     throw new Error("BattleConfig.teams には 1 チーム以上が必要です");
   }
 
+  if (cfg.teams.length !== 2) {
+    throw new Error(
+      "BattleConfig.teams は味方・敵の2チーム構成である必要があります"
+    );
+  }
+
   cfg.teams.forEach((team, teamIndex) => {
     if (typeof team.id !== "string" || team.id.length === 0) {
       throw new Error(

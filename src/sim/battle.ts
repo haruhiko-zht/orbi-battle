@@ -60,38 +60,14 @@ export class BattleSim {
   private log: BattleLog;
   /** 現在のフレームインデックス */
   private frameIndex = 0;
-  /** 1フレームあたりの時間 [秒] */
-  private dt: number;
   /** 現在表示中の状態（フレームのコピー） */
   private state: BattleState;
-  /** 時間蓄積用（固定タイムステップ制御） */
-  acc = 0;
   /** 再生中フラグ */
   running = true;
 
   constructor(cfg: BattleConfig) {
     this.log = simulateBattle(cfg);
-    this.dt = 1 / cfg.tickRate;
     this.state = cloneState(this.log.frames[0]);
-  }
-
-  /**
-   * 固定タイムステップ更新
-   * - 外部から可変delta時間を受け取って蓄積
-   * - 蓄積が1フレーム分に達したら次のフレームへ進む
-   *
-   * @param dt 前フレームからの経過時間 [秒]
-   * @returns 現在の状態
-   */
-  fixedUpdate(dt: number): BattleState {
-    if (!this.running) return this.state;
-    const step = this.dt;
-    this.acc += dt;
-    while (this.acc >= step) {
-      this.advanceFrame();
-      this.acc -= step;
-    }
-    return this.state;
   }
 
   /**
@@ -102,11 +78,84 @@ export class BattleSim {
    */
   reset(cfg: BattleConfig) {
     this.log = simulateBattle(cfg);
-    this.dt = 1 / cfg.tickRate;
     this.frameIndex = 0;
     this.state = cloneState(this.log.frames[0]);
-    this.acc = 0;
     this.running = true;
+  }
+
+  /**
+   * 現在の表示状態を取得
+   */
+  getCurrentState(): BattleState {
+    return this.state;
+  }
+
+  /**
+   * 1フレーム先へ進める
+   * - 末尾に達した場合は終了扱い
+   */
+  step(): BattleState {
+    if (!this.running) {
+      return this.state;
+    }
+    if (this.frameIndex >= this.log.frames.length - 1) {
+      this.running = false;
+      return this.state;
+    }
+    this.frameIndex += 1;
+    this.state = cloneState(this.log.frames[this.frameIndex]);
+    if (this.frameIndex >= this.log.frames.length - 1) {
+      this.running = false;
+    }
+    return this.state;
+  }
+
+  /**
+   * 任意フレームへシーク
+   * - 範囲外はクランプ
+   */
+  seek(frame: number): BattleState {
+    const upper = this.log.frames.length - 1;
+    const clamped = Math.min(Math.max(Math.floor(frame), 0), upper);
+    this.frameIndex = clamped;
+    this.running = clamped < this.log.frames.length - 1;
+    this.state = cloneState(this.log.frames[this.frameIndex]);
+    return this.state;
+  }
+
+  /**
+   * 試合終了済みかどうか
+   */
+  isFinished(): boolean {
+    return !this.running;
+  }
+
+  /**
+   * フレーム総数
+   */
+  getFrameCount(): number {
+    return this.log.frames.length;
+  }
+
+  /**
+   * 現在のフレーム番号
+   */
+  getFrameIndex(): number {
+    return this.frameIndex;
+  }
+
+  /**
+   * 1フレームあたりの時間 [秒]
+   */
+  getFrameDuration(): number {
+    return 1 / this.log.config.tickRate;
+  }
+
+  /**
+   * バトル設定を取得（コピーを返す）
+   */
+  getConfig(): BattleConfig {
+    return cloneConfig(this.log.config);
   }
 
   /**
@@ -115,21 +164,5 @@ export class BattleSim {
    */
   getLog(): BattleLog {
     return this.log;
-  }
-
-  /**
-   * 次のフレームへ進む（内部処理）
-   * - ログから次のフレームをコピーして状態を更新
-   */
-  private advanceFrame() {
-    if (this.frameIndex >= this.log.frames.length - 1) {
-      this.running = false;
-      return;
-    }
-    this.frameIndex += 1;
-    this.state = cloneState(this.log.frames[this.frameIndex]);
-    if (this.frameIndex >= this.log.frames.length - 1) {
-      this.running = false;
-    }
   }
 }

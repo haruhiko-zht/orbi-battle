@@ -1,15 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { presets, type PresetName } from "../config/defaults";
 import { cloneConfig } from "../sim/log";
 import type { AIType } from "../sim/ai/types";
 import type { BattleConfig } from "../sim/types";
 import { orbiBridge } from "./api/orbiBridge";
+import type { PlaybackInfo } from "../types/playback";
 
 const AI_TYPE_OPTIONS: AIType[] = ["nearest", "aggressive", "defensive"];
+const PLAYBACK_RATE_OPTIONS = ["0.25", "0.5", "1", "1.5", "2", "4"] as const;
 type PresetSelection = PresetName | "custom";
 
 let root: Root | null = null;
+
+const DEFAULT_PLAYBACK_INFO: PlaybackInfo = {
+  frameIndex: 0,
+  frameCount: 0,
+  isPaused: true,
+  isFinished: true,
+  playbackRate: 1,
+};
 
 export function createDebugPanel(cfg: BattleConfig, presetName?: PresetName) {
   const overlay = document.getElementById("overlay");
@@ -46,16 +56,46 @@ function DebugPanelApp({ initialConfig, initialPresetName }: DebugPanelProps) {
     return initialPresetName ?? matched ?? "custom";
   });
 
+  const [playbackInfo, setPlaybackInfo] = useState<PlaybackInfo>(() => {
+    return orbiBridge.getPlaybackInfo() ?? DEFAULT_PLAYBACK_INFO;
+  });
+  const [frameInput, setFrameInput] = useState<number>(playbackInfo.frameIndex);
+
   useEffect(() => {
     setConfig(cloneConfig(initialConfig));
     const matched = findPresetMatch(initialConfig, presetEntries);
     setSelectedPreset(initialPresetName ?? matched ?? "custom");
   }, [initialConfig, initialPresetName, presetEntries]);
 
+  const syncPlayback = useCallback(() => {
+    const info = orbiBridge.getPlaybackInfo();
+    if (info) {
+      setPlaybackInfo(info);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(syncPlayback, 150);
+    return () => window.clearInterval(timer);
+  }, [syncPlayback]);
+
+  useEffect(() => {
+    setFrameInput(playbackInfo.frameIndex);
+  }, [playbackInfo.frameIndex]);
+
   const presetOptions = useMemo(
     () => presetEntries.map(([name]) => name),
     [presetEntries]
   );
+
+  const playbackRateOptions = useMemo(() => {
+    const base = [...PLAYBACK_RATE_OPTIONS];
+    const current = playbackInfo.playbackRate.toString();
+    if (!base.includes(current as any)) {
+      base.push(current as any);
+    }
+    return base;
+  }, [playbackInfo.playbackRate]);
 
   const updateConfig = (mutate: (draft: BattleConfig) => void) => {
     setConfig((prev) => {
@@ -72,6 +112,7 @@ function DebugPanelApp({ initialConfig, initialPresetName }: DebugPanelProps) {
       setConfig(presetCfg);
       setSelectedPreset(value);
       orbiBridge.reset(presetCfg);
+      syncPlayback();
       return;
     }
     setSelectedPreset("custom");
@@ -81,6 +122,38 @@ function DebugPanelApp({ initialConfig, initialPresetName }: DebugPanelProps) {
     orbiBridge.reset(cloneConfig(config));
     const matched = findPresetMatch(config, presetEntries);
     setSelectedPreset(matched ?? "custom");
+    syncPlayback();
+  };
+
+  const handleTogglePlay = () => {
+    if (playbackInfo.isPaused) {
+      orbiBridge.play();
+    } else {
+      orbiBridge.pause();
+    }
+    syncPlayback();
+  };
+
+  const handleStepFrame = () => {
+    orbiBridge.stepFrame();
+    syncPlayback();
+  };
+
+  const handleSeekFrame = (value: number) => {
+    if (!Number.isFinite(value)) return;
+    const maxFrame =
+      playbackInfo.frameCount > 0 ? playbackInfo.frameCount - 1 : 0;
+    const clamped = Math.min(Math.max(Math.round(value), 0), maxFrame);
+    setFrameInput(clamped);
+    orbiBridge.seekFrame(clamped);
+    syncPlayback();
+  };
+
+  const handlePlaybackRateChange = (value: string) => {
+    const rate = Number(value);
+    if (!Number.isFinite(rate) || rate <= 0) return;
+    orbiBridge.setPlaybackRate(rate);
+    syncPlayback();
   };
 
   return (
@@ -112,6 +185,44 @@ function DebugPanelApp({ initialConfig, initialPresetName }: DebugPanelProps) {
           onChange={(value) =>
             updateConfig((draft) => (draft.tickRate = value))
           }
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Playback</legend>
+        <div className="playback-controls">
+          <button type="button" onClick={handleTogglePlay}>
+            {playbackInfo.isPaused ? "Play" : "Pause"}
+          </button>
+          <button
+            type="button"
+            onClick={handleStepFrame}
+            disabled={playbackInfo.isFinished}
+          >
+            Step
+          </button>
+        </div>
+        <div className="playback-status">
+          <span>
+            Frame{" "}
+            {playbackInfo.frameCount > 0
+              ? playbackInfo.frameIndex + 1
+              : playbackInfo.frameIndex}{" "}
+            / {playbackInfo.frameCount}
+          </span>
+        </div>
+        <NumberInput
+          label="Frame"
+          value={frameInput}
+          min={0}
+          max={Math.max(playbackInfo.frameCount - 1, 0)}
+          onChange={handleSeekFrame}
+        />
+        <DropdownInput
+          label="Speed"
+          value={playbackInfo.playbackRate.toString()}
+          options={playbackRateOptions}
+          onChange={handlePlaybackRateChange}
         />
       </fieldset>
 
@@ -214,10 +325,19 @@ type NumberInputProps = {
   label: string;
   value: number;
   step?: number;
+  min?: number;
+  max?: number;
   onChange: (value: number) => void;
 };
 
-function NumberInput({ label, value, step = 1, onChange }: NumberInputProps) {
+function NumberInput({
+  label,
+  value,
+  step = 1,
+  min,
+  max,
+  onChange,
+}: NumberInputProps) {
   return (
     <label className="debug-input">
       <span>{label}</span>
@@ -225,6 +345,8 @@ function NumberInput({ label, value, step = 1, onChange }: NumberInputProps) {
         type="number"
         value={value}
         step={step}
+        min={min}
+        max={max}
         onChange={(event) => onChange(Number(event.currentTarget.value))}
       />
     </label>

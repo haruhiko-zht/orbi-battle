@@ -13,6 +13,12 @@ import {
   TEAM_COLOR_PALETTE,
   FRAME_CONTROL,
 } from "../config/renderConstants";
+import {
+  resolveBattleSides,
+  resolveFighterSides,
+  type BattleSides,
+} from "../sim/sides";
+import type { PlaybackInfo } from "../types/playback";
 
 /**
  * Phaser バトルシーン
@@ -24,6 +30,16 @@ export class BattleScene extends Phaser.Scene {
   sim!: BattleSim;
   /** 現在のバトル設定 */
   cfg: BattleConfig = structuredClone(defaults3v3);
+  /** 味方/敵チーム情報 */
+  private sides!: BattleSides;
+  /** 現在描画中の状態 */
+  private currentState!: BattleState;
+  /** ログ再生用の時間蓄積 */
+  private frameAccumulator = 0;
+  /** 再生一時停止フラグ */
+  private isPaused = false;
+  /** 再生速度 */
+  private playbackRate = 1;
   /** アリーナ（円形境界）の描画オブジェクト */
   arena!: Phaser.GameObjects.Arc;
   /** ファイターの描画オブジェクトマップ（ファイターID -> 円形） */
@@ -38,8 +54,6 @@ export class BattleScene extends Phaser.Scene {
   private teamColors: Map<string, number> = new Map();
   /** 勝敗表示テキスト */
   result!: Phaser.GameObjects.Text;
-  /** レイアウト前提を警告済みかどうか */
-  private warnedTeamLayout = false;
 
   constructor() {
     super("Battle");
@@ -52,37 +66,13 @@ export class BattleScene extends Phaser.Scene {
    * - グローバルAPIを公開
    */
   create() {
+    this.initializeSimulation(this.cfg);
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
-
-    this.sim = new BattleSim(this.cfg);
-    this.initializeTeamColors(this.cfg);
-    this.warnedTeamLayout = false;
-
-    // アリーナ（円形境界）
-    this.arena = this.add
-      .circle(cx, cy, this.cfg.arenaRadius, 0x0, ARENA.fillAlpha)
-      .setStrokeStyle(ARENA.strokeWidth, ARENA.strokeColor);
-
-    // 全ファイターの描画オブジェクトを動的に生成
-    const initialState = this.sim.fixedUpdate(0);
-    this.buildFighterObjects(initialState, cx, cy);
-
-    // 勝敗表示
-    this.result = this.add.text(RESULT_TEXT.x, RESULT_TEXT.y, "", {
-      color: RESULT_TEXT.color,
-    });
-
-    // デバッグUI用のグローバルAPI
-    window.$orbi = {
-      ...(window.$orbi ?? {}),
-      reset: (cfg: BattleConfig) => this.reset(cfg),
-      getLog: () => this.sim.getLog(),
-    };
-
-    // 初期状態を描画
-    this.renderState(initialState);
+    this.setupArena();
+    this.buildFighterObjects(this.currentState);
+    this.setupResultText();
+    this.setupGlobalApi();
+    this.renderState(this.currentState);
   }
 
   /**
@@ -90,36 +80,11 @@ export class BattleScene extends Phaser.Scene {
    * @param cfg 新しいバトル設定
    */
   reset(cfg: BattleConfig) {
-    this.cfg = structuredClone(cfg);
-    this.sim.reset(this.cfg);
-    this.initializeTeamColors(this.cfg);
-    this.warnedTeamLayout = false;
-
-    // 既存の描画オブジェクトを全て削除
-    for (const circle of this.fighters.values()) {
-      circle.destroy();
-    }
-    for (const rangeCircle of this.fighterRanges.values()) {
-      rangeCircle.destroy();
-    }
-    for (const hpBar of this.fighterHpBars.values()) {
-      hpBar.destroy();
-    }
-    for (const hpText of this.fighterHpTexts.values()) {
-      hpText.destroy();
-    }
-    this.fighters.clear();
-    this.fighterRanges.clear();
-    this.fighterHpBars.clear();
-    this.fighterHpTexts.clear();
-
-    // 新しいファイター構成で描画オブジェクトを再生成
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
-    const initialState = this.sim.fixedUpdate(0);
-    this.buildFighterObjects(initialState, cx, cy);
-
-    this.renderState(initialState);
+    this.destroyFighterObjects();
+    this.initializeSimulation(cfg);
+    this.setupArena();
+    this.buildFighterObjects(this.currentState);
+    this.renderState(this.currentState);
   }
 
   /**
@@ -128,9 +93,30 @@ export class BattleScene extends Phaser.Scene {
    * @param delta 前フレームからの経過時間 [ミリ秒]
    */
   override update(_time: number, delta: number) {
-    const dt = Math.min(delta / 1000, FRAME_CONTROL.maxDeltaTime); // 大きなフレーム落ちを抑制
-    const state = this.sim.fixedUpdate(dt);
-    this.renderState(state);
+    if (this.isPaused || this.playbackRate <= 0) {
+      return;
+    }
+
+    const deltaSeconds = Math.min(delta / 1000, FRAME_CONTROL.maxDeltaTime);
+    this.frameAccumulator += deltaSeconds * this.playbackRate;
+
+    const frameDuration = this.sim.getFrameDuration();
+    let didAdvance = false;
+
+    while (this.frameAccumulator >= frameDuration && !this.sim.isFinished()) {
+      this.frameAccumulator -= frameDuration;
+      this.currentState = this.sim.step();
+      didAdvance = true;
+    }
+
+    if (this.sim.isFinished()) {
+      this.isPaused = true;
+      this.frameAccumulator = 0;
+    }
+
+    if (didAdvance) {
+      this.renderState(this.currentState);
+    }
   }
 
   /**
@@ -169,59 +155,30 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // HPバーの描画：teams[0] を味方（右列）、teams[1] を敵（左列）として扱う
+    // HPバーの描画：味方（右列）・敵（左列）
     const w = HP_BAR.width;
     const h = HP_BAR.height;
     const pad = HP_BAR.padding;
     const leftOffset = HP_BAR.leftOffset;
-    const orderedFighters = this.getSortedFighters(state.fighters);
-    if (this.cfg.teams.length === 2) {
-      const allyTeamId = this.cfg.teams[0]?.id;
-      const enemyTeamId = this.cfg.teams[1]?.id;
-      const allyFighters = orderedFighters.filter(
-        (fighter) => fighter.teamId === allyTeamId
-      );
-      const enemyFighters = orderedFighters.filter((fighter) => {
-        if (!enemyTeamId) return fighter.teamId !== allyTeamId;
-        return fighter.teamId === enemyTeamId;
-      });
+    const rightOffset = this.scale.width - w - leftOffset;
+    const { ally, enemy } = resolveFighterSides(state, this.sides);
 
-      let yOffsetLeft = this.scale.height - h;
-      for (const fighter of enemyFighters) {
-        const hpBar = this.fighterHpBars.get(fighter.id);
-        const hpText = this.fighterHpTexts.get(fighter.id);
-        if (!hpBar || !hpText) continue;
-        this.renderHpBar(fighter, hpBar, hpText, leftOffset, yOffsetLeft, w, h);
-        yOffsetLeft -= h + pad;
-      }
+    let yOffsetEnemy = this.scale.height - h;
+    for (const fighter of enemy) {
+      const hpBar = this.fighterHpBars.get(fighter.id);
+      const hpText = this.fighterHpTexts.get(fighter.id);
+      if (!hpBar || !hpText) continue;
+      this.renderHpBar(fighter, hpBar, hpText, leftOffset, yOffsetEnemy, w, h);
+      yOffsetEnemy -= h + pad;
+    }
 
-      const rightOffset = this.scale.width - w - leftOffset;
-      let yOffsetRight = this.scale.height - h;
-      for (const fighter of allyFighters) {
-        const hpBar = this.fighterHpBars.get(fighter.id);
-        const hpText = this.fighterHpTexts.get(fighter.id);
-        if (!hpBar || !hpText) continue;
-        this.renderHpBar(
-          fighter,
-          hpBar,
-          hpText,
-          rightOffset,
-          yOffsetRight,
-          w,
-          h
-        );
-        yOffsetRight -= h + pad;
-      }
-    } else {
-      this.warnInvalidTeamLayout(this.cfg.teams.length);
-      let yOffset = this.scale.height - h;
-      for (const fighter of orderedFighters) {
-        const hpBar = this.fighterHpBars.get(fighter.id);
-        const hpText = this.fighterHpTexts.get(fighter.id);
-        if (!hpBar || !hpText) continue;
-        this.renderHpBar(fighter, hpBar, hpText, leftOffset, yOffset, w, h);
-        yOffset -= h + pad;
-      }
+    let yOffsetAlly = this.scale.height - h;
+    for (const fighter of ally) {
+      const hpBar = this.fighterHpBars.get(fighter.id);
+      const hpText = this.fighterHpTexts.get(fighter.id);
+      if (!hpBar || !hpText) continue;
+      this.renderHpBar(fighter, hpBar, hpText, rightOffset, yOffsetAlly, w, h);
+      yOffsetAlly -= h + pad;
     }
 
     this.result.setText(state.winner ? `WINNER: ${state.winner}` : "");
@@ -230,7 +187,10 @@ export class BattleScene extends Phaser.Scene {
   /**
    * 初期状態に合わせて描画オブジェクトを生成
    */
-  private buildFighterObjects(state: BattleState, cx: number, cy: number) {
+  private buildFighterObjects(state: BattleState) {
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+
     for (const fighter of state.fighters) {
       const color = this.getTeamColor(fighter.teamId);
       // 攻撃範囲の可視化（デバッグ向け）
@@ -265,14 +225,99 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /**
+   * 既存の描画オブジェクトを破棄
+   */
+  private destroyFighterObjects() {
+    for (const circle of this.fighters.values()) {
+      circle.destroy();
+    }
+    for (const rangeCircle of this.fighterRanges.values()) {
+      rangeCircle.destroy();
+    }
+    for (const hpBar of this.fighterHpBars.values()) {
+      hpBar.destroy();
+    }
+    for (const hpText of this.fighterHpTexts.values()) {
+      hpText.destroy();
+    }
+    this.fighters.clear();
+    this.fighterRanges.clear();
+    this.fighterHpBars.clear();
+    this.fighterHpTexts.clear();
+  }
+
+  /**
+   * シミュレーションと関連状態を初期化
+   */
+  private initializeSimulation(cfg: BattleConfig) {
+    this.cfg = structuredClone(cfg);
+    if (this.sim) {
+      this.sim.reset(this.cfg);
+    } else {
+      this.sim = new BattleSim(this.cfg);
+    }
+    this.currentState = this.sim.getCurrentState();
+    this.sides = resolveBattleSides(this.cfg);
+    this.initializeTeamColors();
+    this.frameAccumulator = 0;
+    this.isPaused = false;
+    this.playbackRate = 1;
+  }
+
+  /**
+   * アリーナの描画をセットアップ
+   */
+  private setupArena() {
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+
+    if (this.arena) {
+      this.arena.destroy();
+    }
+
+    this.arena = this.add
+      .circle(cx, cy, this.cfg.arenaRadius, 0x0, ARENA.fillAlpha)
+      .setStrokeStyle(ARENA.strokeWidth, ARENA.strokeColor);
+  }
+
+  /**
+   * 勝敗表示テキストの作成
+   */
+  private setupResultText() {
+    if (this.result) {
+      this.result.destroy();
+    }
+    this.result = this.add.text(RESULT_TEXT.x, RESULT_TEXT.y, "", {
+      color: RESULT_TEXT.color,
+    });
+  }
+
+  /**
+   * デバッグUI向けに window.$orbi を更新
+   */
+  private setupGlobalApi() {
+    window.$orbi = {
+      ...(window.$orbi ?? {}),
+      reset: (cfg: BattleConfig) => this.reset(cfg),
+      getLog: () => this.sim.getLog(),
+      play: () => this.play(),
+      pause: () => this.pause(),
+      stepFrame: () => this.stepFrame(),
+      seekFrame: (frameIndex: number) => this.seekFrame(frameIndex),
+      setPlaybackRate: (rate: number) => this.setPlaybackRate(rate),
+      getPlaybackInfo: () => this.getPlaybackInfo(),
+    };
+  }
+
+  /**
    * チームカラーを初期化
    */
-  private initializeTeamColors(cfg: BattleConfig) {
+  private initializeTeamColors() {
     this.teamColors.clear();
-    cfg.teams.forEach((team, index) => {
-      const color = TEAM_COLOR_PALETTE[index % TEAM_COLOR_PALETTE.length];
-      this.teamColors.set(team.id, color);
-    });
+    const allyColor = TEAM_COLOR_PALETTE[0] ?? 0xffffff;
+    const enemyColor = TEAM_COLOR_PALETTE[1] ?? allyColor;
+    this.teamColors.set(this.sides.ally.id, allyColor);
+    this.teamColors.set(this.sides.enemy.id, enemyColor);
   }
 
   /**
@@ -280,24 +325,12 @@ export class BattleScene extends Phaser.Scene {
    */
   private getTeamColor(teamId: string): number {
     if (!this.teamColors.has(teamId)) {
-      const color =
-        TEAM_COLOR_PALETTE[this.teamColors.size % TEAM_COLOR_PALETTE.length];
-      this.teamColors.set(teamId, color);
+      const fallback =
+        TEAM_COLOR_PALETTE[this.teamColors.size % TEAM_COLOR_PALETTE.length] ??
+        0xffffff;
+      this.teamColors.set(teamId, fallback);
     }
     return this.teamColors.get(teamId)!;
-  }
-
-  /**
-   * 表示用にファイターをチーム順で並び替える
-   */
-  private getSortedFighters(fighters: FighterState[]): FighterState[] {
-    const teamOrder = this.cfg.teams.map((team) => team.id);
-    return [...fighters].sort((a, b) => {
-      const teamDiff =
-        teamOrder.indexOf(a.teamId) - teamOrder.indexOf(b.teamId);
-      if (teamDiff !== 0) return teamDiff;
-      return a.id.localeCompare(b.id);
-    });
   }
 
   /**
@@ -332,13 +365,61 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /**
-   * レイアウト前提に合わない構成を受け取った際に警告
+   * 再生を開始
    */
-  private warnInvalidTeamLayout(teamCount: number) {
-    if (this.warnedTeamLayout) return;
-    console.warn(
-      `[BattleScene] HPレイアウトは2チーム前提です。受信チーム数: ${teamCount}。単一列表示にフォールバックします。`
-    );
-    this.warnedTeamLayout = true;
+  private play() {
+    this.isPaused = false;
+    this.frameAccumulator = 0;
+  }
+
+  /**
+   * 再生を一時停止
+   */
+  private pause() {
+    this.isPaused = true;
+    this.frameAccumulator = 0;
+  }
+
+  /**
+   * 再生速度を設定
+   */
+  private setPlaybackRate(rate: number) {
+    if (!Number.isFinite(rate)) return;
+    this.playbackRate = Math.max(rate, 0);
+  }
+
+  /**
+   * 指定フレームへシーク
+   */
+  private seekFrame(frameIndex: number) {
+    this.currentState = this.sim.seek(frameIndex);
+    this.frameAccumulator = 0;
+    if (this.sim.isFinished()) {
+      this.isPaused = true;
+    }
+    this.renderState(this.currentState);
+  }
+
+  /**
+   * 1フレームだけ進める
+   */
+  private stepFrame() {
+    this.isPaused = true;
+    this.currentState = this.sim.step();
+    this.frameAccumulator = 0;
+    this.renderState(this.currentState);
+  }
+
+  /**
+   * 再生情報を取得
+   */
+  private getPlaybackInfo(): PlaybackInfo {
+    return {
+      frameIndex: this.sim.getFrameIndex(),
+      frameCount: this.sim.getFrameCount(),
+      isPaused: this.isPaused,
+      isFinished: this.sim.isFinished(),
+      playbackRate: this.playbackRate,
+    };
   }
 }
