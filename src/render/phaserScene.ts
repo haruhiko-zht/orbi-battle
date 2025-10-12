@@ -113,7 +113,7 @@ export class BattleScene extends Phaser.Scene {
    * @param _time 経過時間（未使用）
    * @param delta 前フレームからの経過時間 [ミリ秒]
    */
-  update(_time: number, delta: number) {
+  override update(_time: number, delta: number) {
     const dt = Math.min(delta / 1000, 0.05); // 大きなフレーム落ちを抑制
     const state = this.sim.fixedUpdate(dt);
     this.renderState(state);

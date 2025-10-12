@@ -128,7 +128,7 @@ requestAnimationFrame → BattleScene.update(delta)
 
 ## Testing Philosophy
 
-- **79 tests** with **96% coverage** on core simulation logic
+- **101 tests** with **96% coverage** on core simulation logic
 - Simulation layer is fully unit tested (no mocks needed)
 - Rendering layer tested via type checks and manual verification (Canvas API not testable in happy-dom)
 - All tests use Vitest with happy-dom environment
@@ -165,7 +165,11 @@ All simulations are deterministic based on `seed` in `BattleConfig`. Same seed +
 
 - All APIs have explicit TypeScript types
 - No `any` types in simulation logic
-- `window.$orbi` currently uses `@ts-expect-error` but could be typed via global declaration in future
+- `window.$orbi` is properly typed via global declaration in [src/global.d.ts](src/global.d.ts)
+- **TypeScript strict mode enabled** with additional compiler checks:
+  - `noImplicitReturns`: Ensures all code paths return values
+  - `noFallthroughCasesInSwitch`: Prevents accidental switch fallthrough
+  - `noImplicitOverride`: Requires explicit `override` modifier when overriding class methods
 
 ## Extension Points
 

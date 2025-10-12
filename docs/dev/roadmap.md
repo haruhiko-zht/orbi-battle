@@ -4,7 +4,6 @@
 
 ## 直近 2 週間（2025-10-12 時点）
 
-- **tsconfig 強化** — `strict`, `noUncheckedIndexedAccess`, `noUnusedLocals` などを段階的に有効化し、ビルドエラーを解消する
 - **レンダリング定数の集約** — HP バー寸法や色を `src/config/renderConstants.ts` に移し、重複を排除
 - **simulateBattle バリデーション** — `tickRate` / `arenaRadius` などに入力チェックを入れ、異常値で早期に失敗させる
 
@@ -24,6 +23,7 @@
 3. ✅ 型安全性の向上（グローバル型定義、`@ts-expect-error` 削減）
 4. ✅ Prettier セットアップ
 5. ✅ AI システムの抽象化（NearestTargetAI, AggressiveAI, DefensiveAI）
+6. ✅ tsconfig 強化
 
 ### 今すぐやるべき（短期）
 

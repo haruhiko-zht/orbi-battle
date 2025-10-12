@@ -1,4 +1,4 @@
-import type { BattleConfig, FighterParams } from "../sim/types";
+import type { BattleConfig } from "../sim/types";
 import { presets, type PresetName } from "../config/defaults";
 
 /**
