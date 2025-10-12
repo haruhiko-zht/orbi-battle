@@ -9,12 +9,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Setup
+
 ```bash
 npm install
 npm run dev  # Start dev server at http://localhost:5173
 ```
 
 ### Testing
+
 ```bash
 npm test                  # Run all tests
 npm run test:ui          # Run tests with UI
@@ -24,6 +26,7 @@ npx vitest --watch       # Run tests in watch mode
 ```
 
 ### Build
+
 ```bash
 npm run build    # Build for production (output: dist/)
 npm run preview  # Preview production build
@@ -71,6 +74,7 @@ Battles follow this execution flow:
 ### Core Data Flow
 
 **Initialization**:
+
 ```
 main.ts → Phaser.Game → BattleScene.create()
                       → createDebugPanel()
@@ -78,6 +82,7 @@ main.ts → Phaser.Game → BattleScene.create()
 ```
 
 **Reset/Restart**:
+
 ```
 DebugPanel [Restart] → window.$orbi.reset(config)
                      → BattleScene.reset()
@@ -86,6 +91,7 @@ DebugPanel [Restart] → window.$orbi.reset(config)
 ```
 
 **Per-Frame Rendering**:
+
 ```
 requestAnimationFrame → BattleScene.update(delta)
                       → BattleSim.fixedUpdate(dt)
@@ -96,6 +102,7 @@ requestAnimationFrame → BattleScene.update(delta)
 ## Key Files and Their Roles
 
 ### Simulation Layer ([src/sim/](src/sim/))
+
 - **[types.ts](src/sim/types.ts)**: Core type definitions (`BattleConfig`, `BattleState`, `FighterState`, `Vec2`)
 - **[engine.ts](src/sim/engine.ts)**: Game logic (movement, combat, collision, win conditions)
 - **[battle.ts](src/sim/battle.ts)**: `simulateBattle()` function and `BattleSim` replay class
@@ -104,15 +111,19 @@ requestAnimationFrame → BattleScene.update(delta)
 - **[fighter.ts](src/sim/fighter.ts)**: Reserved for future AI extension
 
 ### Rendering Layer ([src/render/](src/render/))
+
 - **[phaserScene.ts](src/render/phaserScene.ts)**: Phaser scene that visualizes `BattleState`
 
 ### UI Layer ([src/ui/](src/ui/))
+
 - **[debugPanel.ts](src/ui/debugPanel.ts)**: HTML panel for adjusting battle parameters; exposes `window.$orbi.reset()`
 
 ### Entry Point
+
 - **[main.ts](src/main.ts)**: Initializes Phaser game and debug panel
 
 ### Configuration
+
 - **[defaults.ts](src/config/defaults.ts)**: Default battle parameters (`defaults`, `defaults3v3`)
 
 ## Testing Philosophy
@@ -123,6 +134,7 @@ requestAnimationFrame → BattleScene.update(delta)
 - All tests use Vitest with happy-dom environment
 
 **Coverage highlights**:
+
 - [src/sim/log.ts](src/sim/log.ts), [src/sim/rng.ts](src/sim/rng.ts), [src/ui/debugPanel.ts](src/ui/debugPanel.ts): 100%
 - [src/sim/engine.ts](src/sim/engine.ts): 96.15%
 - [src/sim/battle.ts](src/sim/battle.ts): 95.52%
@@ -130,22 +142,27 @@ requestAnimationFrame → BattleScene.update(delta)
 ## Development Patterns
 
 ### Deterministic Behavior
+
 All simulations are deterministic based on `seed` in `BattleConfig`. Same seed + same config = same outcome. This is critical for:
+
 - Replay consistency
 - Server-side verification
 - Debugging
 
 ### Immutability Assumptions
+
 - `BattleConfig` and `BattleLog` are treated as immutable once created
 - Use `cloneConfig()` and `cloneState()` from [src/sim/log.ts](src/sim/log.ts) when deep copies are needed
 - Engine updates state in-place during simulation, but frames are cloned before being stored in logs
 
 ### Fixed Timestep
+
 - Game logic runs at `tickRate` (default 60Hz)
 - Rendering can run at different FPS without affecting simulation
 - `BattleSim.fixedUpdate(dt)` accumulates time and advances frames when threshold is reached
 
 ### Type Safety
+
 - All APIs have explicit TypeScript types
 - No `any` types in simulation logic
 - `window.$orbi` currently uses `@ts-expect-error` but could be typed via global declaration in future
@@ -153,15 +170,19 @@ All simulations are deterministic based on `seed` in `BattleConfig`. Same seed +
 ## Extension Points
 
 ### Adding New Fighter AI
+
 Modify [src/sim/engine.ts](src/sim/engine.ts) `stepFighter()` method or create AI strategy pattern in [src/sim/fighter.ts](src/sim/fighter.ts).
 
 ### Adding Visual Effects
+
 Extend [src/render/phaserScene.ts](src/render/phaserScene.ts) without touching simulation layer. Effects should be purely cosmetic.
 
 ### Server-Side Integration
+
 Export `simulateBattle()` to Node.js environment. Send `BattleLog` to client for replay. Server can validate client-submitted logs by re-running simulation with same config/seed.
 
 ### Team/Fighter Configuration
+
 Currently supports multiple teams with multiple fighters each. Teams are defined in `BattleConfig.teams[]`. Each team has an `id` and array of `FighterParams`. Initial placement is automatically calculated in circular sectors.
 
 ## Important Constraints
@@ -175,11 +196,13 @@ Currently supports multiple teams with multiple fighters each. Teams are defined
 ## Documentation
 
 Comprehensive design docs are in [docs/design/](docs/design/):
+
 - [architecture.md](docs/design/architecture.md): Layer structure, data flow, extension points
 - [system.md](docs/design/system.md): System-wide component interactions
 - [simulation.md](docs/design/simulation.md): AI logic and determinism details
 
 Development guides in [docs/dev/](docs/dev/):
+
 - [tests.md](docs/dev/tests.md): Testing guide with coverage details
 - [roadmap.md](docs/dev/roadmap.md): Future development phases
 - [next-steps.md](docs/dev/next-steps.md): Immediate actionable tasks

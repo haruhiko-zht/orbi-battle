@@ -4,49 +4,35 @@
 
 ---
 
-## 🎯 フェーズ 0.1: 型安全性の向上
+## ✅ 完了済み
 
-### タスク 1: グローバル型定義ファイルの追加
+### フェーズ 0.1: 型安全性の向上 ✅
 
-**目的**: `window.$orbi` の型安全性を確保
+- [x] `src/types/global.d.ts` でグローバル型定義を追加
+- [x] `@ts-expect-error` を削減（3 箇所すべて対応）
+- [x] TypeScript コンパイルエラーゼロを確認
 
-**手順**:
+### フェーズ 0.2: テスト環境整備 ✅
 
-1. `src/types/global.d.ts` を作成
+- [x] Vitest セットアップ完了
+- [x] 80 テスト実装、96%カバレッジ達成
 
-```typescript
-import type { BattleConfig } from "../sim/types";
-import type { BattleLog } from "../sim/log";
-import type Phaser from "phaser";
+### フェーズ 0.3: コード品質改善（部分完了）
 
-declare global {
-  interface Window {
-    $orbi: {
-      game: Phaser.Game;
-      reset: (cfg: BattleConfig) => void;
-      getLog: () => BattleLog;
-    };
-  }
-}
-
-export {};
-```
-
-2. `src/main.ts`, `src/render/phaserScene.ts`, `src/ui/debugPanel.ts` から `@ts-expect-error` を削除
-
-3. 動作確認
-
-```typescript
-// コンソールで型チェックされることを確認
-window.$orbi.reset(/* ... */);
-window.$orbi.getLog();
-```
-
-**期待される効果**: エディタで補完が効くようになり、型エラーを事前検知
+- [x] Prettier セットアップ完了
+  - `.prettierrc` 設定ファイル作成
+  - `.prettierignore` 作成
+  - `npm run format` / `npm run format:check` スクリプト追加
 
 ---
 
-### タスク 2: tsconfig.json の厳密化
+## 🎯 次にやるべきこと
+
+### オプション 1: フェーズ 0.3 完了 - コード品質改善
+
+残りのタスク：
+
+#### タスク 1: tsconfig.json の厳密化
 
 **現在の設定**:
 
@@ -80,237 +66,7 @@ window.$orbi.getLog();
 
 ---
 
-## 🧪 フェーズ 0.2: テスト環境整備
-
-### タスク 1: Vitest のセットアップ
-
-**インストール**:
-
-```bash
-npm install -D vitest @vitest/ui
-```
-
-**package.json にスクリプト追加**:
-
-```json
-{
-  "scripts": {
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
-  }
-}
-```
-
-**vite.config.ts に設定追加**:
-
-```typescript
-import { defineConfig } from "vite";
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: "node",
-  },
-});
-```
-
----
-
-### タスク 2: 最初のテストを書く
-
-**`src/sim/__tests__/engine.test.ts` を作成**:
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { Engine } from "../engine";
-import type { BattleConfig } from "../types";
-
-describe("Engine", () => {
-  const defaultConfig: BattleConfig = {
-    seed: 12345,
-    arenaRadius: 200,
-    tickRate: 60,
-    fighterA: {
-      hpMax: 100,
-      atk: 10,
-      range: 30,
-      speed: 50,
-      cooldown: 0.5,
-    },
-    fighterB: {
-      hpMax: 100,
-      atk: 10,
-      range: 30,
-      speed: 50,
-      cooldown: 0.5,
-    },
-  };
-
-  it("初期状態が正しく設定される", () => {
-    const engine = new Engine(defaultConfig);
-
-    expect(engine.state.t).toBe(0);
-    expect(engine.state.winner).toBeNull();
-    expect(engine.state.a.hp).toBe(100);
-    expect(engine.state.b.hp).toBe(100);
-    expect(engine.state.a.alive).toBe(true);
-    expect(engine.state.b.alive).toBe(true);
-  });
-
-  it("決定論的動作: 同じシードで同じ結果", () => {
-    const engine1 = new Engine(defaultConfig);
-    const engine2 = new Engine(defaultConfig);
-
-    // 100フレーム進める
-    for (let i = 0; i < 100; i++) {
-      engine1.update();
-      engine2.update();
-    }
-
-    expect(engine1.state.a.hp).toBe(engine2.state.a.hp);
-    expect(engine1.state.b.hp).toBe(engine2.state.b.hp);
-    expect(engine1.state.a.pos).toEqual(engine2.state.a.pos);
-    expect(engine1.state.b.pos).toEqual(engine2.state.b.pos);
-  });
-
-  it("ファイターがアリーナ外に出ない", () => {
-    const engine = new Engine(defaultConfig);
-
-    for (let i = 0; i < 1000; i++) {
-      engine.update();
-
-      const distA = Math.hypot(engine.state.a.pos.x, engine.state.a.pos.y);
-      const distB = Math.hypot(engine.state.b.pos.x, engine.state.b.pos.y);
-
-      expect(distA).toBeLessThanOrEqual(defaultConfig.arenaRadius + 0.01);
-      expect(distB).toBeLessThanOrEqual(defaultConfig.arenaRadius + 0.01);
-    }
-  });
-});
-```
-
-**実行**:
-
-```bash
-npm test
-```
-
----
-
-### タスク 3: スナップショットテスト
-
-**`src/sim/__tests__/battle.test.ts` を作成**:
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { simulateBattle } from "../battle";
-import type { BattleConfig } from "../types";
-
-describe("simulateBattle", () => {
-  const config: BattleConfig = {
-    seed: 99999,
-    arenaRadius: 220,
-    tickRate: 60,
-    fighterA: {
-      hpMax: 120,
-      atk: 10,
-      range: 36,
-      speed: 75,
-      cooldown: 0.45,
-    },
-    fighterB: {
-      hpMax: 120,
-      atk: 10,
-      range: 36,
-      speed: 75,
-      cooldown: 0.45,
-    },
-  };
-
-  it("バトルログが正しく生成される", () => {
-    const log = simulateBattle(config);
-
-    expect(log.version).toBe(1);
-    expect(log.config).toEqual(config);
-    expect(log.frames.length).toBeGreaterThan(0);
-    expect(log.frames[0].t).toBe(0);
-  });
-
-  it("勝者が決まる", () => {
-    const log = simulateBattle(config, { maxSeconds: 30 });
-    const lastFrame = log.frames[log.frames.length - 1];
-
-    // 30秒以内に決着がつく想定
-    expect(lastFrame.winner).not.toBeNull();
-  });
-
-  it("ログの一貫性（スナップショット）", () => {
-    const log = simulateBattle(config, { maxSeconds: 5 });
-
-    // 最終フレームをスナップショット
-    expect(log.frames[log.frames.length - 1]).toMatchSnapshot();
-  });
-});
-```
-
----
-
-## 📝 フェーズ 0.3: コード品質改善
-
-### タスク 1: ESLint + Prettier セットアップ
-
-**インストール**:
-
-```bash
-npm install -D eslint prettier eslint-config-prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin
-```
-
-**`.eslintrc.json` 作成**:
-
-```json
-{
-  "parser": "@typescript-eslint/parser",
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "prettier"
-  ],
-  "rules": {
-    "no-console": "warn",
-    "@typescript-eslint/no-unused-vars": [
-      "error",
-      { "argsIgnorePattern": "^_" }
-    ]
-  }
-}
-```
-
-**`.prettierrc` 作成**:
-
-```json
-{
-  "semi": true,
-  "singleQuote": false,
-  "tabWidth": 2,
-  "trailingComma": "es5"
-}
-```
-
-**package.json にスクリプト追加**:
-
-```json
-{
-  "scripts": {
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write 'src/**/*.ts'"
-  }
-}
-```
-
----
-
-### タスク 2: マジックナンバーの定数化
+#### タスク 2: マジックナンバーの定数化
 
 **例: `src/render/phaserScene.ts`**
 
@@ -319,8 +75,8 @@ npm install -D eslint prettier eslint-config-prettier @typescript-eslint/parser 
 ```typescript
 const w = 320,
   h = 8;
-const pad = 6;
-this.a = this.add.circle(cx - this.cfg.arenaRadius * 0.7, cy, 10, 0x7bd389);
+const pad = 2;
+this.add.circle(cx, cy, 10, color);
 ```
 
 変更後:
@@ -330,18 +86,15 @@ this.a = this.add.circle(cx - this.cfg.arenaRadius * 0.7, cy, 10, 0x7bd389);
 export const RENDER_CONSTANTS = {
   HP_BAR_WIDTH: 320,
   HP_BAR_HEIGHT: 8,
-  HP_BAR_PADDING: 6,
+  HP_BAR_PADDING: 2,
   FIGHTER_RADIUS: 10,
-  FIGHTER_INITIAL_OFFSET: 0.7, // アリーナ半径に対する比率
-  COLOR_FIGHTER_A: 0x7bd389,
-  COLOR_FIGHTER_B: 0xf97070,
-  COLOR_ARENA: 0x4a90e2,
+  COLOR_ARENA_STROKE: 0x4a90e2,
 } as const;
 ```
 
 ---
 
-### タスク 3: エラーハンドリング追加
+#### タスク 3: エラーハンドリング追加
 
 **例: `src/sim/battle.ts`**
 
@@ -364,11 +117,110 @@ export function simulateBattle(
 
 ---
 
-## 🚀 次のステップ実行順序
+### オプション 2: フェーズ 2.1 - AI システムの抽象化 🤖
 
-1. **型安全性**: グローバル型定義 → `@ts-expect-error` 削除
-2. **テスト**: Vitest セットアップ → 最初のテスト → スナップショット
-3. **品質**: ESLint/Prettier → マジックナンバー定数化 → エラーハンドリング
-4. **確認**: `npm run lint && npm test && npm run build`
+基礎固めが完了したので、機能拡張に進む選択肢もあります。
 
-すべて完了したら、**フェーズ 2: シミュレーション拡張** へ進みましょう！
+#### AI インターフェース定義
+
+```typescript
+// src/sim/ai/types.ts
+export interface FighterAI {
+  decide(
+    self: FighterState,
+    enemies: FighterState[],
+    arena: { radius: number }
+  ): AIDecision;
+}
+
+export type AIDecision = {
+  targetId: string | null; // 攻撃対象
+  moveDirection: Vec2 | null; // 移動方向
+};
+```
+
+#### 複数 AI 実装
+
+```typescript
+// src/sim/ai/aggressive.ts
+export class AggressiveAI implements FighterAI {
+  decide(self, enemies, arena) {
+    // 最も近い敵に向かって接近
+    const nearest = findNearest(self, enemies);
+    return {
+      targetId: nearest.id,
+      moveDirection: directionTo(self.pos, nearest.pos),
+    };
+  }
+}
+
+// src/sim/ai/defensive.ts
+export class DefensiveAI implements FighterAI {
+  decide(self, enemies, arena) {
+    // 距離を保ちながら攻撃
+    const nearest = findNearest(self, enemies);
+    const distance = getDistance(self.pos, nearest.pos);
+    if (distance < self.params.range * 1.5) {
+      // 離れる
+      return {
+        targetId: nearest.id,
+        moveDirection: directionAway(self.pos, nearest.pos),
+      };
+    }
+    return {
+      targetId: nearest.id,
+      moveDirection: null,
+    };
+  }
+}
+```
+
+---
+
+### オプション 3: フェーズ 2.2 - 戦闘システム拡張 ⚔️
+
+#### 攻撃範囲の可視化
+
+```typescript
+// src/render/phaserScene.ts に追加
+private renderAttackRange(fighter: FighterState) {
+  const range = this.add.circle(
+    cx + fighter.pos.x,
+    cy + fighter.pos.y,
+    fighter.params.range,
+    0xffffff,
+    0.1
+  );
+  range.setStrokeStyle(1, 0xffffff, 0.3);
+}
+```
+
+#### 回避行動の実装
+
+```typescript
+// src/sim/types.ts に追加
+export type FighterParams = {
+  hpMax: number;
+  atk: number;
+  range: number;
+  speed: number;
+  cooldown: number;
+  evasion: number; // 0-1 の回避率
+};
+
+// src/sim/engine.ts で回避判定
+const evaded = rng.next() < target.params.evasion;
+if (!evaded) {
+  target.hp -= attacker.params.atk;
+}
+```
+
+---
+
+## 🚀 推奨する実行順序
+
+1. **完璧主義ルート**: オプション 1 → フェーズ 0 完全制覇 → フェーズ 2 へ
+2. **機能開発優先ルート**: オプション 2 or 3 → 新機能を追加しながら品質改善
+3. **バランスルート**: マジックナンバー定数化のみ実施 → フェーズ 2 へ
+
+すべて完了したら、**フェーズ 2: シミュレーション拡張** で本格的な機能追加に進みましょう！

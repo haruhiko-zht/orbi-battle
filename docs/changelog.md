@@ -1,5 +1,61 @@
 # 更新履歴
 
+## 2025-10-12
+
+### フェーズ 0.1: 型安全性の向上 ✅
+
+**グローバル型定義の追加**
+
+- `src/types/global.d.ts` を新規作成
+  - `window.$orbi` API の型定義を追加
+  - `game`, `reset()`, `getLog()` の型を定義
+- 3 箇所の `@ts-expect-error` を削除
+  - `src/main.ts`: 型アサーションに変更
+  - `src/render/phaserScene.ts`: 型安全なスプレッド構文に変更
+  - `src/ui/debugPanel.ts`: 型定義により不要に
+- TypeScript コンパイルエラーゼロを確認
+
+**効果**
+
+- エディタで `window.$orbi` の補完が効くようになった
+- 型エラーを事前に検知できるようになった
+- コードの保守性が向上
+
+### フェーズ 0.3: Prettier セットアップ ✅
+
+**インストールと設定**
+
+- Prettier を devDependency として追加
+- `.prettierrc` 設定ファイルを作成
+  - セミコロンあり
+  - ダブルクォート
+  - タブ幅 2
+  - ES5 の trailing comma
+  - 行幅 80 文字
+- `.prettierignore` を作成
+  - `node_modules`, `dist`, `coverage` などを除外
+- `package.json` にスクリプト追加
+  - `npm run format`: 全ファイルをフォーマット
+  - `npm run format:check`: フォーマット違反をチェック
+
+**実行結果**
+
+- コードベース全体を自動フォーマット
+- 5 ファイルを整形（マークダウン、HTML）
+- ソースコードは既に規約に準拠していた
+
+**ドキュメント更新**
+
+- `docs/dev/roadmap.md` を更新
+  - フェーズ 0.1, 0.3 の完了状態を反映
+  - 優先度マトリクスを更新
+- `docs/dev/next-steps.md` を全面刷新
+  - 完了済みタスクをまとめ
+  - 次のステップ 3 つのオプションを明示
+  - コード例を追加
+
+---
+
 ## 2025-10-11
 
 ### 初期実装

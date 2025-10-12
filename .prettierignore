@@ -1,0 +1,16 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+coverage
+
+# Cache
+.vite
+.vitest
+
+# Snapshots
+**/__snapshots__
+
+# Logs
+*.log
