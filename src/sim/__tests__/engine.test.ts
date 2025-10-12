@@ -188,6 +188,28 @@ describe("Engine", () => {
     }
   });
 
+  it("不正な tickRate では Engine 生成時に例外を投げる", () => {
+    const invalidConfig = {
+      ...defaultConfig,
+      tickRate: 0,
+    };
+
+    expect(() => new Engine(invalidConfig)).toThrowError(
+      "BattleConfig.tickRate は 0より大きいである必要があります"
+    );
+  });
+
+  it("チームが空配列の場合は Engine 生成時に例外を投げる", () => {
+    const invalidConfig = {
+      ...defaultConfig,
+      teams: [],
+    };
+
+    expect(() => new Engine(invalidConfig)).toThrowError(
+      "BattleConfig.teams には 1 チーム以上が必要です"
+    );
+  });
+
   it("クールダウンが正しく動作する", () => {
     const config = makeConfig(
       12345,

@@ -4,12 +4,11 @@
 
 ## 直近 2 週間（2025-10-12 時点）
 
-- **simulateBattle バリデーション** — `tickRate` / `arenaRadius` などに入力チェックを入れ、異常値で早期に失敗させる
+- **攻撃範囲の可視化** — デバッグ目的のサークル描画を追加し、Phaser 層での戦闘確認を容易にする
+- **AI 選択 UI** — Debug パネルから `nearest` / `aggressive` / `defensive` を切り替えられるようにする
 
 ## 次の候補
 
-- **攻撃範囲の可視化** — デバッグ目的のサークル描画を追加し、Phaser 層での戦闘確認を容易にする
-- **AI 選択 UI** — Debug パネルから `nearest` / `aggressive` / `defensive` を切り替えられるようにする
 - **カバレッジ監視** — 主要シミュレーションテストのスナップショット依存を減らし、壊れにくいアサーションへ置換
 
 ## メモ
@@ -25,6 +24,7 @@
 5. ✅ AI システムの抽象化（NearestTargetAI, AggressiveAI, DefensiveAI）
 6. ✅ tsconfig 強化
 7. ✅ レンダリング定数の集約（HP バー寸法や色を `src/config/renderConstants.ts` に移行）
+8. ✅ simulateBattle 入力バリデーション（`tickRate` / `arenaRadius` などのチェックを追加）
 
 ### 今すぐやるべき（短期）
 

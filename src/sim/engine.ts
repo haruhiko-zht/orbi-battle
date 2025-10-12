@@ -1,6 +1,7 @@
 import type { BattleConfig, BattleState, FighterState, Vec2 } from "./types";
 import { makeRng } from "./rng";
 import { getAI } from "./ai";
+import { validateBattleConfig } from "./validation";
 
 /**
  * 位置を円形境界内にクランプする
@@ -32,6 +33,7 @@ export class Engine {
   state: BattleState;
 
   constructor(cfg: BattleConfig) {
+    validateBattleConfig(cfg);
     this.cfg = cfg;
     this.dt = 1 / cfg.tickRate;
     this.rng = makeRng(cfg.seed);

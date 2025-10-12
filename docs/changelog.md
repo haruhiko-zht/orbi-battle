@@ -51,6 +51,19 @@
   - 優先度マトリクスを更新
 - `docs/dev/next-steps.md` を全面刷新（※現在はロードマップへ統合済み）
 
+### シミュレーション入力バリデーション ✅
+
+**実装**
+
+- `src/sim/validation.ts` を新規追加し、`BattleConfig` のランタイム検証を共通化
+- `simulateBattle()` と `Engine` コンストラクタの入口で検証を実行し、`tickRate`・`arenaRadius`・ファイターパラメータ・AI タイプの異常値を即時検出
+- `simulateBattle` の `maxSeconds` オプションも同一ロジックでチェック
+
+**テスト**
+
+- `src/sim/__tests__/battle.test.ts` と `src/sim/__tests__/engine.test.ts` に異常値テストを追加
+- `npx vitest run src/sim/__tests__/battle.test.ts src/sim/__tests__/engine.test.ts --pool=threads` で全テストが成功することを確認
+
 ---
 
 ## 2025-10-11

@@ -1,9 +1,19 @@
 import type { BattleConfig, BattleState } from "./types";
 import { Engine } from "./engine";
 import { type BattleLog, cloneConfig, cloneState } from "./log";
+import { assertFinitePositive, validateBattleConfig } from "./validation";
 
 /** デフォルトの最大シミュレーション時間 [秒] */
 const DEFAULT_MAX_SECONDS = 60;
+
+/**
+ * simulateBattle オプションの妥当性を検証
+ */
+function validateSimulateBattleOptions(opts?: { maxSeconds?: number }) {
+  if (typeof opts === "undefined") return;
+  if (typeof opts.maxSeconds === "undefined") return;
+  assertFinitePositive(opts.maxSeconds, "simulateBattle(opts).maxSeconds");
+}
 
 /**
  * バトル全体を事前にシミュレートして結果をログに記録
@@ -18,6 +28,9 @@ export function simulateBattle(
   cfg: BattleConfig,
   opts?: { maxSeconds?: number }
 ): BattleLog {
+  validateBattleConfig(cfg);
+  validateSimulateBattleOptions(opts);
+
   const engine = new Engine(cfg);
   const frames: BattleState[] = [cloneState(engine.state)];
   const maxSeconds = opts?.maxSeconds ?? DEFAULT_MAX_SECONDS;
