@@ -113,6 +113,7 @@ requestAnimationFrame → BattleScene.update(delta)
 ### Rendering Layer ([src/render/](src/render/))
 
 - **[phaserScene.ts](src/render/phaserScene.ts)**: Phaser scene that visualizes `BattleState`
+- HP レイアウトは 2 チーム前提（`teams[0]` = 味方 / `teams[1]` = 敵）。追加チームは警告のうえ単列表示にフォールバック
 
 ### UI Layer ([src/ui/](src/ui/))
 

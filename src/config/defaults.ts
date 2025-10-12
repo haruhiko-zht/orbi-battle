@@ -1,9 +1,12 @@
 import type { BattleConfig } from "../sim/types";
 
+// NOTE: Phaser 側の HP レイアウトは teams[0] を味方（右列）、teams[1] を敵（左列）として扱う
+
 /**
  * デフォルトのバトル設定（1 vs 1）
  * - 初回起動時に使用される
  * - デバッグパネルの初期値にもなる
+ * - チーム順序は味方 -> 敵固定
  */
 export const defaults: BattleConfig = {
   seed: 123456,
@@ -39,6 +42,7 @@ export const defaults: BattleConfig = {
 
 /**
  * 3 vs 3 のテスト用設定
+ * - チーム順序は味方 -> 敵固定
  */
 export const defaults3v3: BattleConfig = {
   seed: 123456,
@@ -66,6 +70,7 @@ export const defaults3v3: BattleConfig = {
 
 /**
  * AI 対戦デモ用設定（AggressiveAI vs DefensiveAI）
+ * - チーム順序は味方 -> 敵固定
  */
 export const aiDemoConfig: BattleConfig = {
   seed: 42,
@@ -103,6 +108,7 @@ export const aiDemoConfig: BattleConfig = {
 
 /**
  * 混合AI 3v3設定（各チームに異なるAIタイプが混在）
+ * - チーム順序は味方 -> 敵固定
  */
 export const mixedAI3v3: BattleConfig = {
   seed: 777,

@@ -4,7 +4,6 @@
 
 ## 直近 2 週間（2025-10-12 時点）
 
-- **レンダリング定数の集約** — HP バー寸法や色を `src/config/renderConstants.ts` に移し、重複を排除
 - **simulateBattle バリデーション** — `tickRate` / `arenaRadius` などに入力チェックを入れ、異常値で早期に失敗させる
 
 ## 次の候補
@@ -17,6 +16,7 @@
 
 - 完了済みタスクは都度 Changelog に移し、ロードマップから削除する
 - 大規模機能（マルチプレイ・装備システムなど）は別ドキュメントではなく Issue で設計を進める
+- レンダリングは 2 チーム前提（`teams[0]` = 味方 / `teams[1]` = 敵）。例外構成は単列フォールバック扱い
 
 1. ✅ ドキュメント・コメント整備
 2. ✅ テスト環境整備（Vitest + happy-dom、AI システムの自動テスト整備）
@@ -24,6 +24,7 @@
 4. ✅ Prettier セットアップ
 5. ✅ AI システムの抽象化（NearestTargetAI, AggressiveAI, DefensiveAI）
 6. ✅ tsconfig 強化
+7. ✅ レンダリング定数の集約（HP バー寸法や色を `src/config/renderConstants.ts` に移行）
 
 ### 今すぐやるべき（短期）
 
