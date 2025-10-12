@@ -66,9 +66,8 @@ export class BattleScene extends Phaser.Scene {
     this.result = this.add.text(12, 12, "", { color: "#ffffff" });
 
     // デバッグUI用のグローバルAPI
-    // @ts-expect-error
     window.$orbi = {
-      ...((window as any).$orbi ?? {}),
+      ...(window.$orbi ?? {}),
       reset: (cfg: BattleConfig) => this.reset(cfg),
       getLog: () => this.sim.getLog(),
     };

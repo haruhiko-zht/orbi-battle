@@ -136,7 +136,6 @@ export function createDebugPanel(cfg: BattleConfig) {
         })),
       })),
     };
-    // @ts-expect-error
     window.$orbi?.reset?.(next);
   };
 }

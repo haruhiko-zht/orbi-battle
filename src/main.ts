@@ -27,5 +27,4 @@ const game = new Phaser.Game({
 createDebugPanel(defaults3v3);
 
 // コンソールからの操作用グローバルAPI
-// @ts-expect-error
-window.$orbi = { game };
+window.$orbi = { game } as Window["$orbi"];
