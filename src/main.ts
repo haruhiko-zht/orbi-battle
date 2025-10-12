@@ -23,8 +23,8 @@ const game = new Phaser.Game({
   scene: [BattleScene],
 });
 
-// デバッグUI（右側のパネル）
-createDebugPanel(defaults3v3, "3v3");
-
 // コンソールからの操作用グローバルAPI
 window.$orbi = { game } as Window["$orbi"];
+
+// デバッグUI（右側のパネル）
+createDebugPanel(defaults3v3, "3v3");
