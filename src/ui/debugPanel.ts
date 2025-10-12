@@ -1,4 +1,5 @@
 import type { BattleConfig, FighterParams } from "../sim/types";
+import { presets, type PresetName } from "../config/defaults";
 
 /**
  * 数値入力フィールドを生成するヘルパー関数
@@ -28,9 +29,48 @@ function numberInput(label: string, value: number, step = 1) {
  *
  * @param cfg 初期設定
  */
-export function createDebugPanel(cfg: BattleConfig) {
+export function createDebugPanel(cfg: BattleConfig, presetName?: PresetName) {
   const overlay = document.getElementById("overlay")!;
   overlay.innerHTML = "";
+
+  // プリセット選択ドロップダウン
+  const presetWrap = document.createElement("div");
+  const presetLabel = document.createElement("label");
+  presetLabel.textContent = "Preset";
+  const presetSelect = document.createElement("select");
+  const presetEntries = Object.entries(presets);
+  const currentPresetName =
+    presetName ??
+    (presetEntries.find(([, preset]) => preset === cfg)?.[0] as
+      | PresetName
+      | undefined);
+
+  // プリセットオプションを追加
+  presetEntries.forEach(([name]) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    if (name === currentPresetName) {
+      option.selected = true;
+    }
+    presetSelect.appendChild(option);
+  });
+
+  if (!presetSelect.value && presetSelect.options.length > 0) {
+    presetSelect.value = presetSelect.options[0].value;
+  }
+
+  presetWrap.appendChild(presetLabel);
+  presetWrap.appendChild(presetSelect);
+  overlay.appendChild(presetWrap);
+
+  // プリセット変更時の処理
+  presetSelect.onchange = () => {
+    const name = presetSelect.value as PresetName;
+    const selectedPreset = presets[name];
+    window.$orbi?.reset?.(selectedPreset);
+    createDebugPanel(selectedPreset, name);
+  };
 
   const seed = numberInput("seed", cfg.seed);
   const radius = numberInput("radius", cfg.arenaRadius);

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { BattleConfig, BattleState, FighterState } from "../sim/types";
 import { BattleSim } from "../sim/battle";
-import { defaults, defaults3v3 } from "../config/defaults";
+import { defaults3v3 } from "../config/defaults";
 
 /**
  * Phaser バトルシーン

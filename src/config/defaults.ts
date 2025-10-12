@@ -169,3 +169,15 @@ export const mixedAI3v3: BattleConfig = {
     },
   ],
 };
+
+/**
+ * 利用可能なプリセット一覧
+ */
+export const presets = {
+  "1v1 (default)": defaults,
+  "3v3": defaults3v3,
+  "AI Demo (Aggressive vs Defensive)": aiDemoConfig,
+  "Mixed AI 3v3": mixedAI3v3,
+} as const;
+
+export type PresetName = keyof typeof presets;

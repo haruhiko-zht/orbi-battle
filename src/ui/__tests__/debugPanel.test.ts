@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createDebugPanel } from "../debugPanel";
 import type { BattleConfig } from "../../sim/types";
+import { presets } from "../../config/defaults";
 
 describe("createDebugPanel", () => {
   const defaultConfig: BattleConfig = {
@@ -94,12 +95,12 @@ describe("createDebugPanel", () => {
     const overlay = document.getElementById("overlay")!;
     const labels = overlay.querySelectorAll("label");
 
-    expect(labels.length).toBe(13);
-    expect(labels[0].textContent).toBe("seed");
-    expect(labels[1].textContent).toBe("radius");
-    expect(labels[2].textContent).toBe("tick");
-    expect(labels[3].textContent).toBe("A.hp");
-    expect(labels[4].textContent).toBe("A.atk");
+    expect(labels.length).toBe(14);
+    expect(labels[0].textContent).toBe("Preset");
+    expect(labels[1].textContent).toBe("seed");
+    expect(labels[2].textContent).toBe("radius");
+    expect(labels[3].textContent).toBe("tick");
+    expect(labels[4].textContent).toBe("A.hp");
   });
 
   it("Restartボタンをクリックするとwindow.$orbi.resetが呼ばれる", () => {
@@ -251,6 +252,26 @@ describe("createDebugPanel", () => {
     expect(labels).toContain("A[1].hp");
     expect(labels).toContain("A[0].atk");
     expect(labels).toContain("B.hp");
+  });
+
+  it("プリセット変更でUIを再生成しresetが呼ばれる", () => {
+    const mockReset = vi.fn();
+    (window as any).$orbi = { reset: mockReset };
+
+    createDebugPanel(defaultConfig);
+
+    const overlay = document.getElementById("overlay")!;
+    const select = overlay.querySelector("select") as HTMLSelectElement;
+    select.value = "3v3";
+    select.dispatchEvent(new Event("change"));
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReset).toHaveBeenCalledWith(presets["3v3"]);
+
+    const labels = Array.from(overlay.querySelectorAll("label")).map(
+      (label) => label.textContent
+    );
+    expect(labels).toContain("A[2].hp");
   });
 
   it("step属性が正しく設定される", () => {

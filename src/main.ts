@@ -7,7 +7,7 @@
 import Phaser from "phaser";
 import { BattleScene } from "./render/phaserScene";
 import { createDebugPanel } from "./ui/debugPanel";
-import { defaults, defaults3v3 } from "./config/defaults";
+import { defaults3v3 } from "./config/defaults";
 
 // Phaserゲームインスタンスの生成
 const game = new Phaser.Game({
@@ -24,7 +24,7 @@ const game = new Phaser.Game({
 });
 
 // デバッグUI（右側のパネル）
-createDebugPanel(defaults3v3);
+createDebugPanel(defaults3v3, "3v3");
 
 // コンソールからの操作用グローバルAPI
 window.$orbi = { game } as Window["$orbi"];
