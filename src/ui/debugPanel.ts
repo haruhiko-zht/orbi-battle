@@ -1,5 +1,9 @@
 import type { BattleConfig } from "../sim/types";
 import { presets, type PresetName } from "../config/defaults";
+import type { AIType } from "../sim/ai/types";
+
+/** デバッグパネルで選択可能なAIタイプ */
+const AI_TYPE_OPTIONS: AIType[] = ["nearest", "aggressive", "defensive"];
 
 /**
  * 数値入力フィールドを生成するヘルパー関数
@@ -19,6 +23,30 @@ function numberInput(label: string, value: number, step = 1) {
   wrap.appendChild(l);
   wrap.appendChild(i);
   return { wrap, input: i };
+}
+
+/**
+ * 選択肢付きドロップダウンを生成するヘルパー関数
+ * @param label ラベルテキスト
+ * @param value 初期値
+ * @param options 選択肢リスト
+ * @returns ラップ要素とselect要素
+ */
+function selectInput(label: string, value: string, options: readonly string[]) {
+  const wrap = document.createElement("div");
+  const l = document.createElement("label");
+  l.textContent = label;
+  const s = document.createElement("select");
+  options.forEach((opt) => {
+    const option = document.createElement("option");
+    option.value = opt;
+    option.textContent = opt;
+    s.appendChild(option);
+  });
+  s.value = value;
+  wrap.appendChild(l);
+  wrap.appendChild(s);
+  return { wrap, select: s };
 }
 
 /**
@@ -90,6 +118,7 @@ export function createDebugPanel(cfg: BattleConfig, presetName?: PresetName) {
       speed: HTMLInputElement;
       cooldown: HTMLInputElement;
     };
+    aiType: HTMLSelectElement;
   };
 
   const controlsByTeam: Array<{
@@ -156,8 +185,15 @@ export function createDebugPanel(cfg: BattleConfig, presetName?: PresetName) {
         inputs[key] = input;
       });
 
+      const { wrap: aiWrap, select: aiSelect } = selectInput(
+        `${labelBase}.ai`,
+        fighter.aiType ?? "nearest",
+        AI_TYPE_OPTIONS
+      );
+      container.appendChild(aiWrap);
+
       section.appendChild(container);
-      fighterControls.push({ inputs });
+      fighterControls.push({ inputs, aiType: aiSelect });
     });
 
     overlay.appendChild(section);
@@ -172,20 +208,16 @@ export function createDebugPanel(cfg: BattleConfig, presetName?: PresetName) {
       seed: Number(seed.input.value),
       arenaRadius: Number(radius.input.value),
       tickRate: Number(tick.input.value),
-      teams: controlsByTeam.map((teamCtrl, teamIndex) => ({
+      teams: controlsByTeam.map((teamCtrl) => ({
         id: teamCtrl.id,
-        fighters: teamCtrl.fighters.map(({ inputs }, fighterIndex) => {
-          // 元の設定から aiType を保持
-          const originalFighter = cfg.teams[teamIndex].fighters[fighterIndex];
-          return {
-            hpMax: Number(inputs.hpMax.value),
-            atk: Number(inputs.atk.value),
-            range: Number(inputs.range.value),
-            speed: Number(inputs.speed.value),
-            cooldown: Number(inputs.cooldown.value),
-            ...(originalFighter.aiType && { aiType: originalFighter.aiType }),
-          };
-        }),
+        fighters: teamCtrl.fighters.map(({ inputs, aiType }) => ({
+          hpMax: Number(inputs.hpMax.value),
+          atk: Number(inputs.atk.value),
+          range: Number(inputs.range.value),
+          speed: Number(inputs.speed.value),
+          cooldown: Number(inputs.cooldown.value),
+          aiType: (aiType.value as AIType) ?? "nearest",
+        })),
       })),
     };
     window.$orbi?.reset?.(next);

@@ -19,7 +19,7 @@ export const defaults: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.45,
         },
@@ -31,7 +31,7 @@ export const defaults: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.45,
         },
@@ -52,17 +52,17 @@ export const defaults3v3: BattleConfig = {
     {
       id: "A",
       fighters: [
-        { hpMax: 100, atk: 8, range: 36, speed: 75, cooldown: 0.5 },
-        { hpMax: 120, atk: 10, range: 40, speed: 60, cooldown: 0.4 },
-        { hpMax: 80, atk: 12, range: 30, speed: 90, cooldown: 0.6 },
+        { hpMax: 100, atk: 8, range: 9, speed: 75, cooldown: 0.5 },
+        { hpMax: 120, atk: 10, range: 10, speed: 60, cooldown: 0.4 },
+        { hpMax: 80, atk: 12, range: 8, speed: 90, cooldown: 0.6 },
       ],
     },
     {
       id: "B",
       fighters: [
-        { hpMax: 100, atk: 8, range: 36, speed: 75, cooldown: 0.5 },
-        { hpMax: 120, atk: 10, range: 40, speed: 60, cooldown: 0.4 },
-        { hpMax: 80, atk: 12, range: 30, speed: 90, cooldown: 0.6 },
+        { hpMax: 100, atk: 8, range: 9, speed: 75, cooldown: 0.5 },
+        { hpMax: 120, atk: 10, range: 10, speed: 60, cooldown: 0.4 },
+        { hpMax: 80, atk: 12, range: 8, speed: 90, cooldown: 0.6 },
       ],
     },
   ],
@@ -83,7 +83,7 @@ export const aiDemoConfig: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.45,
           aiType: "aggressive",
@@ -96,7 +96,7 @@ export const aiDemoConfig: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.45,
           aiType: "defensive",
@@ -121,7 +121,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 100,
           atk: 8,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.5,
           aiType: "aggressive",
@@ -129,7 +129,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 40,
+          range: 10,
           speed: 60,
           cooldown: 0.4,
           aiType: "defensive",
@@ -137,7 +137,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 80,
           atk: 12,
-          range: 30,
+          range: 8,
           speed: 90,
           cooldown: 0.6,
           aiType: "nearest",
@@ -150,7 +150,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 100,
           atk: 8,
-          range: 36,
+          range: 9,
           speed: 75,
           cooldown: 0.5,
           aiType: "nearest",
@@ -158,7 +158,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 120,
           atk: 10,
-          range: 40,
+          range: 10,
           speed: 60,
           cooldown: 0.4,
           aiType: "aggressive",
@@ -166,7 +166,7 @@ export const mixedAI3v3: BattleConfig = {
         {
           hpMax: 80,
           atk: 12,
-          range: 30,
+          range: 8,
           speed: 90,
           cooldown: 0.6,
           aiType: "defensive",

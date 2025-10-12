@@ -20,11 +20,25 @@ export const ARENA = {
 /** ファイター描画設定 */
 export const FIGHTER = {
   /** ファイターの円の半径 [px] */
-  radius: 10,
+  radius: 6,
   /** 生存時の不透明度 */
   aliveAlpha: 1.0,
   /** 死亡時の不透明度 */
   deadAlpha: 0.3,
+} as const;
+
+/** ファイター攻撃範囲の描画設定 */
+export const FIGHTER_RANGE = {
+  /** 境界線の太さ [px] */
+  strokeWidth: 1,
+  /** 生存時の境界線透過度 */
+  strokeAlphaAlive: 0.6,
+  /** 死亡時の境界線透過度 */
+  strokeAlphaDead: 0.2,
+  /** 生存時の塗りつぶし透過度 */
+  fillAlphaAlive: 0.1,
+  /** 死亡時の塗りつぶし透過度 */
+  fillAlphaDead: 0.04,
 } as const;
 
 /** HPバー描画設定 */

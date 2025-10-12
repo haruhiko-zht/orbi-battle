@@ -6,6 +6,7 @@ import {
   BACKGROUND_COLOR,
   ARENA,
   FIGHTER,
+  FIGHTER_RANGE,
   HP_BAR,
   HP_TEXT,
   RESULT_TEXT,
@@ -27,6 +28,8 @@ export class BattleScene extends Phaser.Scene {
   arena!: Phaser.GameObjects.Arc;
   /** ファイターの描画オブジェクトマップ（ファイターID -> 円形） */
   fighters: Map<string, Phaser.GameObjects.Arc> = new Map();
+  /** ファイター攻撃範囲の描画オブジェクトマップ（ファイターID -> 円形） */
+  fighterRanges: Map<string, Phaser.GameObjects.Arc> = new Map();
   /** ファイターのHPバーマップ（ファイターID -> Graphics） */
   fighterHpBars: Map<string, Phaser.GameObjects.Graphics> = new Map();
   /** ファイターのHPテキストマップ（ファイターID -> Text） */
@@ -96,6 +99,9 @@ export class BattleScene extends Phaser.Scene {
     for (const circle of this.fighters.values()) {
       circle.destroy();
     }
+    for (const rangeCircle of this.fighterRanges.values()) {
+      rangeCircle.destroy();
+    }
     for (const hpBar of this.fighterHpBars.values()) {
       hpBar.destroy();
     }
@@ -103,6 +109,7 @@ export class BattleScene extends Phaser.Scene {
       hpText.destroy();
     }
     this.fighters.clear();
+    this.fighterRanges.clear();
     this.fighterHpBars.clear();
     this.fighterHpTexts.clear();
 
@@ -141,10 +148,24 @@ export class BattleScene extends Phaser.Scene {
     // 全ファイターの位置を更新
     for (const fighter of state.fighters) {
       const circle = this.fighters.get(fighter.id);
+      const rangeCircle = this.fighterRanges.get(fighter.id);
+      const color = this.getTeamColor(fighter.teamId);
       if (circle) {
         circle.setPosition(cx + fighter.pos.x, cy + fighter.pos.y);
         // 死亡時は半透明に
         circle.setAlpha(fighter.alive ? FIGHTER.aliveAlpha : FIGHTER.deadAlpha);
+      }
+      if (rangeCircle) {
+        const strokeAlpha = fighter.alive
+          ? FIGHTER_RANGE.strokeAlphaAlive
+          : FIGHTER_RANGE.strokeAlphaDead;
+        const fillAlpha = fighter.alive
+          ? FIGHTER_RANGE.fillAlphaAlive
+          : FIGHTER_RANGE.fillAlphaDead;
+        rangeCircle
+          .setPosition(cx + fighter.pos.x, cy + fighter.pos.y)
+          .setFillStyle(color, fillAlpha)
+          .setStrokeStyle(FIGHTER_RANGE.strokeWidth, color, strokeAlpha);
       }
     }
 
@@ -212,6 +233,22 @@ export class BattleScene extends Phaser.Scene {
   private buildFighterObjects(state: BattleState, cx: number, cy: number) {
     for (const fighter of state.fighters) {
       const color = this.getTeamColor(fighter.teamId);
+      // 攻撃範囲の可視化（デバッグ向け）
+      const rangeCircle = this.add
+        .circle(
+          cx,
+          cy,
+          fighter.params.range,
+          color,
+          FIGHTER_RANGE.fillAlphaAlive
+        )
+        .setStrokeStyle(
+          FIGHTER_RANGE.strokeWidth,
+          color,
+          FIGHTER_RANGE.strokeAlphaAlive
+        );
+      this.fighterRanges.set(fighter.id, rangeCircle);
+
       const circle = this.add.circle(cx, cy, FIGHTER.radius, color);
       this.fighters.set(fighter.id, circle);
 
