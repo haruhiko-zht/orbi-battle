@@ -40,19 +40,26 @@
 
 ## フェーズ 2：シミュレーション拡張
 
-### 2.1 AI システムの抽象化 🤖
+### 2.1 AI システムの抽象化 🤖 ✅
 
-- [ ] AI インターフェース定義
+- [x] AI インターフェース定義
   ```typescript
   interface FighterAI {
-    decide(self: FighterState, enemy: FighterState, arena: ArenaState): Action;
+    decide(
+      self: FighterState,
+      enemies: FighterState[],
+      arenaRadius: number
+    ): AIDecision;
   }
   ```
-- [ ] 複数 AI 実装（戦略パターン）
-  - [ ] `AggressiveAI`: 常に接近
-  - [ ] `DefensiveAI`: 距離維持
-  - [ ] `BalancedAI`: 状況判断
-- [ ] AI 選択機能をデバッグパネルに追加
+- [x] 複数 AI 実装（戦略パターン）
+  - [x] `NearestTargetAI`: 最も近い敵を攻撃（デフォルト）
+  - [x] `AggressiveAI`: 常に接近
+  - [x] `DefensiveAI`: 距離維持
+- [x] AI ユニット/統合テスト整備（詳細は Vitest カバレッジレポート参照）
+- [ ] AI 選択機能をデバッグパネルに追加（将来実装）
+
+**備考**: 現在の AI は**基礎行動パターン**として機能。将来の装備システムで行動を動的に変更可能にする予定。詳細は [docs/dev/ai-system.md](docs/dev/ai-system.md#装備システムとの統合計画) 参照。
 
 ### 2.2 戦闘システム拡張 ⚔️
 
@@ -152,9 +159,38 @@
 
 ### 5.3 装備・成長システム 🎮
 
-- [ ] 装備アイテム
+**設計方針**: 装備システムは基礎AIの上に構築され、ターゲティングと移動パターンを動的に変更する。
+
+#### 装備システム実装
+
+- [ ] Equipment 型定義（id, name, targeting, movement, effects）
+- [ ] TargetingBehavior 実装
+  - [ ] `nearest` - 最も近い敵（基礎AIと同等）
+  - [ ] `lowest-hp` - 最も HP が低い敵
+  - [ ] `highest-threat` - 最も攻撃力が高い敵
+  - [ ] `farthest` - 最も遠い敵
+  - [ ] `random` - ランダム
+- [ ] MovementBehavior 実装
+  - [ ] `direct` - 直進（基礎AIと同等）
+  - [ ] `strafe` - 横移動しながら攻撃
+  - [ ] `kite` - ヒット&アウェイ
+  - [ ] `circle` - 円周移動
+  - [ ] `zigzag` - ジグザグ移動
+- [ ] FighterParams への装備統合
+- [ ] Engine での装備優先ロジック実装
+
+#### 装備効果の拡張
+
+- [ ] パッシブ効果（攻撃力+10%など）
+- [ ] アクティブスキル（範囲攻撃など）
+- [ ] 条件付き発動（HP 50%以下で防御力アップなど）
+
+#### 成長システム
+
 - [ ] レベルアップ・スキルツリー
 - [ ] ビルドプリセット
+
+**詳細設計**: [docs/dev/ai-system.md - 装備システムとの統合計画](docs/dev/ai-system.md#装備システムとの統合計画)
 
 ---
 
@@ -163,15 +199,16 @@
 ### 完了済み ✅
 
 1. ✅ ドキュメント・コメント整備
-2. ✅ テスト環境整備（80テスト、96%カバレッジ）
+2. ✅ テスト環境整備（Vitest + happy-dom、AI システムの自動テスト整備）
 3. ✅ 型安全性の向上（グローバル型定義、`@ts-expect-error` 削減）
 4. ✅ Prettier セットアップ
+5. ✅ AI システムの抽象化（NearestTargetAI, AggressiveAI, DefensiveAI）
 
 ### 今すぐやるべき（短期）
 
 1. 📝 残りのコード品質改善（マジックナンバー定数化、エラーハンドリング）
-2. 🤖 AI システムの抽象化
-3. ⚔️ 戦闘システム拡張
+2. ⚔️ 戦闘システム拡張（攻撃範囲可視化、回避行動など）
+3. 📡 イベントシステム導入
 
 ### 次にやるべき（中期）
 

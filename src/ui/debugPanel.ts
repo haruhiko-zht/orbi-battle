@@ -79,8 +79,15 @@ export function createDebugPanel(cfg: BattleConfig) {
       const container = document.createElement("div");
       container.className = "fighter-controls";
 
+      type NumericFighterParam =
+        | "hpMax"
+        | "atk"
+        | "range"
+        | "speed"
+        | "cooldown";
+
       const fields: Array<{
-        key: keyof FighterParams;
+        key: NumericFighterParam;
         suffix: string;
         step?: number;
       }> = [
@@ -102,7 +109,7 @@ export function createDebugPanel(cfg: BattleConfig) {
       fields.forEach(({ key, suffix, step }) => {
         const { wrap, input } = numberInput(
           `${labelBase}.${suffix}`,
-          fighter[key],
+          fighter[key] as number,
           step
         );
         container.appendChild(wrap);
@@ -125,15 +132,20 @@ export function createDebugPanel(cfg: BattleConfig) {
       seed: Number(seed.input.value),
       arenaRadius: Number(radius.input.value),
       tickRate: Number(tick.input.value),
-      teams: controlsByTeam.map((teamCtrl) => ({
+      teams: controlsByTeam.map((teamCtrl, teamIndex) => ({
         id: teamCtrl.id,
-        fighters: teamCtrl.fighters.map(({ inputs }) => ({
-          hpMax: Number(inputs.hpMax.value),
-          atk: Number(inputs.atk.value),
-          range: Number(inputs.range.value),
-          speed: Number(inputs.speed.value),
-          cooldown: Number(inputs.cooldown.value),
-        })),
+        fighters: teamCtrl.fighters.map(({ inputs }, fighterIndex) => {
+          // 元の設定から aiType を保持
+          const originalFighter = cfg.teams[teamIndex].fighters[fighterIndex];
+          return {
+            hpMax: Number(inputs.hpMax.value),
+            atk: Number(inputs.atk.value),
+            range: Number(inputs.range.value),
+            speed: Number(inputs.speed.value),
+            cooldown: Number(inputs.cooldown.value),
+            ...(originalFighter.aiType && { aiType: originalFighter.aiType }),
+          };
+        }),
       })),
     };
     window.$orbi?.reset?.(next);

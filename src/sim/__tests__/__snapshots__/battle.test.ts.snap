@@ -23,7 +23,7 @@ exports[`simulateBattle > ログの一貫性（スナップショット） 1`] =
     },
     {
       "alive": true,
-      "cooldown": 0.08333333333333343,
+      "cooldown": 0.06666666666666676,
       "hp": 50,
       "id": "B-0",
       "params": {
