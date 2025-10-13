@@ -1,7 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { act } from "react-dom/test-utils";
 import { createDebugPanel } from "../debugPanel";
 import type { BattleConfig } from "../../sim/types";
 import { presets } from "../../config/defaults";
+
+function setInputValue(element: HTMLInputElement, value: string) {
+  const prototype = Object.getPrototypeOf(element) as HTMLInputElement;
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
+  const setter =
+    descriptor?.set ??
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  setter?.call(element, value);
+}
+
+function setSelectValue(element: HTMLSelectElement, value: string) {
+  const prototype = Object.getPrototypeOf(element) as HTMLSelectElement;
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
+  const setter =
+    descriptor?.set ??
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+  setter?.call(element, value);
+}
 
 describe("createDebugPanel", () => {
   const defaultConfig: BattleConfig = {
@@ -136,7 +155,7 @@ describe("createDebugPanel", () => {
     });
   });
 
-  it("入力値を変更してRestartすると新しい設定が渡される", () => {
+  it("入力値を変更してRestartすると新しい設定が渡される", async () => {
     const mockReset = vi.fn();
     (window as any).$orbi = { reset: mockReset };
 
@@ -151,16 +170,20 @@ describe("createDebugPanel", () => {
     ) as NodeListOf<HTMLSelectElement>;
     const button = overlay.querySelector("button") as HTMLButtonElement;
 
-    // seed を変更
-    inputs[0].value = "99999";
-    // radius を変更
-    inputs[1].value = "300";
-    // A.hp を変更
-    inputs[3].value = "150";
-    // A.ai を aggressive に変更
-    aiSelects[0].value = "aggressive";
+    await act(async () => {
+      setInputValue(inputs[0], "99999");
+      inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
+      setInputValue(inputs[1], "300");
+      inputs[1].dispatchEvent(new Event("input", { bubbles: true }));
+      setInputValue(inputs[3], "150");
+      inputs[3].dispatchEvent(new Event("input", { bubbles: true }));
+      setSelectValue(aiSelects[0], "aggressive");
+      aiSelects[0].dispatchEvent(new Event("change", { bubbles: true }));
+    });
 
-    button.click();
+    await act(async () => {
+      button.click();
+    });
 
     // 新しい設定で reset が呼ばれたことを確認
     expect(mockReset).toHaveBeenCalledWith({
@@ -289,7 +312,7 @@ describe("createDebugPanel", () => {
     expect(labels).toContain("B.hp");
   });
 
-  it("プリセット変更でUIを再生成しresetが呼ばれる", () => {
+  it("プリセット変更でUIを再生成しresetが呼ばれる", async () => {
     const mockReset = vi.fn();
     (window as any).$orbi = { reset: mockReset };
 
@@ -297,8 +320,10 @@ describe("createDebugPanel", () => {
 
     const overlay = document.getElementById("overlay")!;
     const select = overlay.querySelector("select") as HTMLSelectElement;
-    select.value = "3v3";
-    select.dispatchEvent(new Event("change"));
+    await act(async () => {
+      setSelectValue(select, "3v3");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
 
     expect(mockReset).toHaveBeenCalledTimes(1);
     expect(mockReset).toHaveBeenCalledWith(presets["3v3"]);

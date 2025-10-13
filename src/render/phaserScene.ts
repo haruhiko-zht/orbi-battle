@@ -1,6 +1,5 @@
 import Phaser from "phaser";
 import type { BattleConfig, BattleState } from "../sim/types";
-import { BattleSim } from "../sim/battle";
 import { defaults3v3 } from "../config/defaults";
 import {
   BACKGROUND_COLOR,
@@ -9,9 +8,8 @@ import {
   TEAM_COLOR_PALETTE,
 } from "../config/renderConstants";
 import { resolveBattleSides, type BattleSides } from "../sim/sides";
-import type { PlaybackInfo } from "../types/playback";
 import { FighterObjectManager, HpHudRenderer } from "./battleLayers";
-import { BattlePlaybackController } from "./playbackController";
+import { BattleRuntimeController } from "./battleRuntimeController";
 
 /**
  * Phaser バトルシーン
@@ -19,10 +17,10 @@ import { BattlePlaybackController } from "./playbackController";
  * - 毎フレーム update() が呼ばれて画面を更新
  */
 export class BattleScene extends Phaser.Scene {
-  /** バトルシミュレーター */
-  sim!: BattleSim;
   /** 現在のバトル設定 */
   cfg: BattleConfig = structuredClone(defaults3v3);
+  /** シミュレーション制御 */
+  private runtime!: BattleRuntimeController;
   /** 味方/敵チーム情報 */
   private sides!: BattleSides;
   /** 現在描画中の状態 */
@@ -33,12 +31,25 @@ export class BattleScene extends Phaser.Scene {
   private fighterObjects!: FighterObjectManager;
   /** HPバー描画管理 */
   private hpHud!: HpHudRenderer;
-  /** 再生制御 */
-  private playback!: BattlePlaybackController;
   /** チームカラーのマップ（チームID -> 16進カラー値） */
   private teamColors: Map<string, number> = new Map();
   /** 勝敗表示テキスト */
   result!: Phaser.GameObjects.Text;
+
+  private handleSimulationReset = (state: BattleState, cfg: BattleConfig) => {
+    this.cfg = structuredClone(cfg);
+    this.sides = resolveBattleSides(this.cfg);
+    this.currentState = state;
+    this.initializeTeamColors();
+    this.setupArena();
+    this.rebuildVisuals();
+    this.renderState(state);
+  };
+
+  private handleStateChange = (state: BattleState) => {
+    this.currentState = state;
+    this.renderState(state);
+  };
 
   constructor() {
     super("Battle");
@@ -53,14 +64,16 @@ export class BattleScene extends Phaser.Scene {
   create() {
     this.fighterObjects = new FighterObjectManager(this);
     this.hpHud = new HpHudRenderer(this);
-    this.initializeSimulation(this.cfg);
-    this.playback = new BattlePlaybackController(this.sim);
+    this.runtime = new BattleRuntimeController(this.cfg, {
+      onSimulationReset: this.handleSimulationReset,
+      onStateChanged: this.handleStateChange,
+    });
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
-    this.setupArena();
-    this.rebuildVisuals();
     this.setupResultText();
-    this.setupGlobalApi();
-    this.renderState(this.currentState);
+    this.handleSimulationReset(
+      this.runtime.getCurrentState(),
+      this.runtime.getConfig()
+    );
   }
 
   /**
@@ -68,10 +81,7 @@ export class BattleScene extends Phaser.Scene {
    * @param cfg 新しいバトル設定
    */
   reset(cfg: BattleConfig) {
-    this.initializeSimulation(cfg);
-    this.setupArena();
-    this.rebuildVisuals();
-    this.renderState(this.currentState);
+    this.runtime.reset(cfg);
   }
 
   /**
@@ -80,12 +90,8 @@ export class BattleScene extends Phaser.Scene {
    * @param delta 前フレームからの経過時間 [ミリ秒]
    */
   override update(_time: number, delta: number) {
-    if (!this.playback) return;
-    const nextState = this.playback.update(delta);
-    if (nextState) {
-      this.currentState = nextState;
-      this.renderState(this.currentState);
-    }
+    if (!this.runtime) return;
+    this.runtime.update(delta);
   }
 
   /**
@@ -112,24 +118,6 @@ export class BattleScene extends Phaser.Scene {
 
     if (this.result) {
       this.result.setText(state.winner ? `WINNER: ${state.winner}` : "");
-    }
-  }
-
-  /**
-   * シミュレーションと関連状態を初期化
-   */
-  private initializeSimulation(cfg: BattleConfig) {
-    this.cfg = structuredClone(cfg);
-    if (this.sim) {
-      this.sim.reset(this.cfg);
-    } else {
-      this.sim = new BattleSim(this.cfg);
-    }
-    this.currentState = this.sim.getCurrentState();
-    this.sides = resolveBattleSides(this.cfg);
-    this.initializeTeamColors();
-    if (this.playback) {
-      this.playback.attachSimulation(this.sim);
     }
   }
 
@@ -179,23 +167,6 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /**
-   * デバッグUI向けに window.$orbi を更新
-   */
-  private setupGlobalApi() {
-    window.$orbi = {
-      ...(window.$orbi ?? {}),
-      reset: (cfg: BattleConfig) => this.reset(cfg),
-      getLog: () => this.sim.getLog(),
-      play: () => this.play(),
-      pause: () => this.pause(),
-      stepFrame: () => this.stepFrame(),
-      seekFrame: (frameIndex: number) => this.seekFrame(frameIndex),
-      setPlaybackRate: (rate: number) => this.setPlaybackRate(rate),
-      getPlaybackInfo: () => this.getPlaybackInfo(),
-    };
-  }
-
-  /**
    * チームカラーを初期化
    */
   private initializeTeamColors() {
@@ -224,48 +195,5 @@ export class BattleScene extends Phaser.Scene {
       x: this.scale.width / 2,
       y: this.scale.height / 2,
     };
-  }
-  /**
-   * 再生を開始
-   */
-  private play() {
-    this.playback.play();
-  }
-
-  /**
-   * 再生を一時停止
-   */
-  private pause() {
-    this.playback.pause();
-  }
-
-  /**
-   * 再生速度を設定
-   */
-  private setPlaybackRate(rate: number) {
-    this.playback.setPlaybackRate(rate);
-  }
-
-  /**
-   * 指定フレームへシーク
-   */
-  private seekFrame(frameIndex: number) {
-    this.currentState = this.playback.seek(frameIndex);
-    this.renderState(this.currentState);
-  }
-
-  /**
-   * 1フレームだけ進める
-   */
-  private stepFrame() {
-    this.currentState = this.playback.step();
-    this.renderState(this.currentState);
-  }
-
-  /**
-   * 再生情報を取得
-   */
-  private getPlaybackInfo(): PlaybackInfo {
-    return this.playback.getPlaybackInfo();
   }
 }

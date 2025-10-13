@@ -17,7 +17,11 @@
 ```
 [Engine] → [simulateBattle] → [BattleLog]
                                     ↓
-                              [BattleSim] ←→ [PhaserScene] ←→ [UI(DebugPanel)]
+                              [BattleSim]
+                                    ↓
+                        [BattleRuntimeController]
+                                    ↓
+                          [PhaserScene] ←→ [UI(DebugPanel)]
 ```
 
 ## ディレクトリ構成
@@ -35,9 +39,13 @@ src/
 │   ├── log.ts           # ログ記録
 │   └── fighter.ts       # (将来の拡張用)
 ├── render/              # 描画層
-│   └── phaserScene.ts   # Phaserシーン
+│   ├── battleRuntimeController.ts # BattleSimとの橋渡しとwindow.$orbi公開
+│   ├── phaserScene.ts   # Phaserシーン（描画専任）
+│   ├── playbackController.ts # 再生速度・フレーム制御
+│   └── battleLayers.ts  # Fighter/HP描画ユーティリティ
 └── ui/                  # UI層
-    └── debugPanel.ts    # デバッグパネル
+    ├── debugPanel.tsx   # Reactベースのデバッグパネル
+    └── api/orbiBridge.ts # window.$orbi の安全な呼び出しラッパー
 ```
 
 ## データフロー
@@ -48,10 +56,11 @@ src/
 main.ts
   ├─→ Phaser.Game 生成
   │    └─→ BattleScene.create()
-  │         └─→ BattleSim(defaults)
-  │              └─→ simulateBattle()
-  │                   └─→ Engine.update() × N回
-  │                        └─→ BattleLog 生成
+  │         └─→ new BattleRuntimeController(defaults)
+  │              └─→ BattleSim(defaults)
+  │                   └─→ simulateBattle()
+  │                        └─→ Engine.update() × N回
+  │                             └─→ BattleLog 生成
   └─→ createDebugPanel(defaults)
        └─→ window.$orbi API 公開
 ```
@@ -61,9 +70,9 @@ main.ts
 ```
 Phaser requestAnimationFrame
   └─→ BattleScene.update(delta)
-       └─→ BattleSim.fixedUpdate(dt)
-            └─→ advanceFrame()
-                 └─→ BattleLog.frames[index] 取得
+       └─→ BattleRuntimeController.update(delta)
+            └─→ BattlePlaybackController.update()
+                 └─→ BattleSim.step()/getCurrentState()
                       └─→ BattleScene.renderState()
                            └─→ 描画更新
 ```
@@ -73,11 +82,18 @@ Phaser requestAnimationFrame
 ```
 DebugPanel [Restart]
   └─→ window.$orbi.reset(newConfig)
-       └─→ BattleScene.reset()
+       └─→ BattleRuntimeController.reset(newConfig)
             └─→ BattleSim.reset()
                  └─→ simulateBattle(newConfig)
                       └─→ BattleLog 再生成
+                         └─→ hooks.onSimulationReset → BattleScene.renderState()
 ```
+
+### 4. グローバル API (`window.$orbi`)
+
+- `BattleRuntimeController` が `reset / play / pause / stepFrame / seekFrame / setPlaybackRate / getPlaybackInfo / getLog` を公開
+- UI 層（`ui/api/orbiBridge.ts`）は安全にラップし、存在チェックや undefined 対策を担当
+- Phaser シーン側では API 公開後も描画のみに集中できる
 
 ## 更新周期
 

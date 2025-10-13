@@ -1,12 +1,19 @@
-import type { FighterAI, AIType } from "./types";
 import { NearestTargetAI } from "./nearestTarget";
 import { AggressiveAI } from "./aggressive";
 import { DefensiveAI } from "./defensive";
+import { AI_DEFINITIONS, type FighterAI, type AIType } from "./types";
 
 export type { FighterAI, AIDecision, AIType } from "./types";
+export { AI_DEFINITIONS, AI_TYPES, AI_OPTIONS } from "./types";
 export { NearestTargetAI } from "./nearestTarget";
 export { AggressiveAI } from "./aggressive";
 export { DefensiveAI } from "./defensive";
+
+const aiFactories: Record<AIType, () => FighterAI> = {
+  nearest: () => new NearestTargetAI(),
+  aggressive: () => new AggressiveAI(),
+  defensive: () => new DefensiveAI(),
+};
 
 /**
  * AI インスタンスのキャッシュ（シングルトンパターン）
@@ -19,19 +26,19 @@ const aiCache = new Map<AIType, FighterAI>();
  * @returns AI インスタンス
  */
 export function getAI(type: AIType): FighterAI {
-  // キャッシュから取得（存在しない場合は新規作成）
   if (!aiCache.has(type)) {
-    switch (type) {
-      case "nearest":
-        aiCache.set(type, new NearestTargetAI());
-        break;
-      case "aggressive":
-        aiCache.set(type, new AggressiveAI());
-        break;
-      case "defensive":
-        aiCache.set(type, new DefensiveAI());
-        break;
+    const factory = aiFactories[type];
+    if (!factory) {
+      throw new Error(`未登録のAIタイプです: ${type}`);
     }
+    aiCache.set(type, factory());
   }
   return aiCache.get(type)!;
+}
+
+/**
+ * 登録済みAIのラベルを取得
+ */
+export function getAiLabel(type: AIType): string {
+  return AI_DEFINITIONS[type]?.label ?? type;
 }

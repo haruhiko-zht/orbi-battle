@@ -29,6 +29,16 @@
 | speed    | 移動速度 | px/s    |
 | cooldown | 攻撃間隔 | 秒      |
 
+## AI レジストリ
+
+- `src/sim/ai/types.ts` の `AI_DEFINITIONS` に AI タイプ名と表示ラベルを一元管理
+- `AI_TYPES` / `AI_OPTIONS` は上記定義から自動生成され、シミュレーション層・UI 層双方で共有
+- 追加手順:
+  1. `AI_DEFINITIONS` に `{ 新タイプ: { label: "表示名" } }` を追記
+  2. `src/sim/ai/index.ts` の `aiFactories` にファクトリ関数を実装
+  3. 必要に応じて UI（デバッグパネル等）で `AI_OPTIONS` を参照
+- これにより追加・削除の際に複数ファイルを横断する必要がなく、拡張ミスを防げる
+
 ## 決定論
 
 - `seed` に基づく乱数生成 (Mulberry32)

@@ -1,7 +1,24 @@
 import type { FighterState, Vec2 } from "../types";
 
-/** 利用可能な AI タイプ一覧 */
-export const AI_TYPES = ["nearest", "aggressive", "defensive"] as const;
+/**
+ * AI 定義のメタデータ
+ * - ラベルはデバッグUI表示用（日本語 + 英語）
+ */
+export const AI_DEFINITIONS = {
+  nearest: { label: "最短距離優先 (nearest)" },
+  aggressive: { label: "突撃型 (aggressive)" },
+  defensive: { label: "距離保持型 (defensive)" },
+} as const;
+
+export type AIType = keyof typeof AI_DEFINITIONS;
+
+/** 登録済み AI タイプ一覧 */
+export const AI_TYPES = Object.keys(AI_DEFINITIONS) as Array<AIType>;
+
+/** UI などで利用するセレクト表示用データ */
+export const AI_OPTIONS = Object.entries(AI_DEFINITIONS).map(
+  ([type, meta]) => ({ type: type as AIType, label: meta.label })
+) as ReadonlyArray<{ type: AIType; label: string }>;
 
 /**
  * AI の決定結果
@@ -33,15 +50,8 @@ export interface FighterAI {
 }
 
 /**
- * AI の種類を表す文字列リテラル型
- */
-export type AIType = (typeof AI_TYPES)[number];
-
-/**
  * ランタイム値が AIType かどうかを判定
  */
 export function isAIType(value: unknown): value is AIType {
-  return (
-    typeof value === "string" && (AI_TYPES as readonly string[]).includes(value)
-  );
+  return typeof value === "string" && value in AI_DEFINITIONS;
 }
