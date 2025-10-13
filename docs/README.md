@@ -1,26 +1,27 @@
 # ドキュメントガイド
 
-目的別に参照すべき資料をまとめています。情報を絞り、重複や履歴ドキュメントは削除済みです。
+最新の実装と運用方針を前提に、必要な情報へ最短で辿れるよう再編成しています。
 
-## すぐに触る
+## 開発フロー
 
-- [dev/setup.md](./dev/setup.md) — 開発環境の前提条件と初期セットアップ
-- [dev/testing.md](./dev/testing.md) — テスト実行とカバレッジ確認の手順
+- [dev/setup.md](./dev/setup.md) — 必要なツール、初回セットアップ、デバッグ起動
+- [dev/testing.md](./dev/testing.md) — Vitest 実行パターンとカバレッジ基準
+- [dev/ai-system.md](./dev/ai-system.md) — AI 拡張ポイントと追加手順
+- [dev/roadmap.md](./dev/roadmap.md) — 直近 2〜4 週間の優先タスク
 
-## 設計の理解
+## 設計リファレンス
 
-- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、更新周期
-- [design/simulation.md](./design/simulation.md) — ファイターの行動ルールと決定論
-- [design/rendering.md](./design/rendering.md) — 描画要素とレイアウト指針
-- [design/parameters.md](./design/parameters.md) — デフォルト値と調整の目安
+- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、`window.$orbi` API 概要
+- [design/simulation.md](./design/simulation.md) — シミュレーションルール、AI レジストリ、検証フック
+- [design/rendering.md](./design/rendering.md) — Phaser シーン構造、攻撃射程表示、レイアウト制約
+- [design/parameters.md](./design/parameters.md) — プリセット値、バランス調整の目安
 
-## 継続的な改善
+## 履歴・変更管理
 
-- [dev/roadmap.md](./dev/roadmap.md) — 直近の改善テーマと優先度
-- [changelog.md](./changelog.md) — 過去の主な変更点
+- [changelog.md](./changelog.md) — リリースノートとテスト証跡
 
-## ドキュメント運用ポリシー
+## ドキュメント運用
 
-- README とこのガイドを起点にすれば必要な情報へ辿れる構成に保つ
-- 情報が古くなった場合は更新ではなく削除・統合を優先
-- 拡張テーマや詳細設計は Pull Request / Issue へ移し、ドキュメントには確定事項のみ残す
+- README とこのガイドから目的の情報へ 2 クリック以内で到達できる状態を維持する
+- 古いトピックは追記より統合・削除を優先し、 Issue / PR に最新議論を追い出す
+- 実装が更新された場合は関連する設計・手順ドキュメントを同じブランチで更新する

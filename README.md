@@ -1,6 +1,6 @@
 # orbi-battle
 
-2D 円形アリーナでの決定論的オートバトルシミュレーター。
+Phaser + TypeScript 製の決定論的オートバトルシミュレーター。アリーナの戦闘を事前に計算し、デバッグやリプレイ検証を高速に行えます。
 
 ## クイックスタート
 
@@ -10,41 +10,32 @@
 
 ## 主な特徴
 
-- **事前シミュレーション**で全フレームを計算し、リプレイや検証が容易
-- **決定論的ロジック**により同じシードと設定で常に同結果を保証
-- **レイヤー分離**（Simulation / Rendering / UI）でテストしやすく拡張が容易
-- **デバッグパネル**からリアルタイムにパラメータ変更とリセットが可能
+- **事前シミュレーション方式**でバトルを全フレーム算出。ログを保存して巻き戻し・高速再生が自在。
+- **決定論的エンジン**が seed と設定に対して常に同一結果を保証。Vitest によるリグレッション検証が容易。
+- **レイヤー分離**（Simulation / Rendering / UI）によりロジックと描画を疎結合化。Node.js 上でシミュレーションのみ実行可能。
+- **デバッグパネル + `window.$orbi` API**（型定義済み）からリセットやシーク、再生速度変更をリアルタイム操作。
+- **AI 拡張ポイント**を `src/sim/ai` に集約し、パラメータと行動戦略をプリセットで試験できる。
 
-## アーキテクチャ概要
+## レイヤースタック
 
-- `src/sim/`: 乱数を含むすべての戦闘ロジック。Node.js 環境でも実行可能。
-- `src/render/`: Phaser シーン。ログを再生して描画のみ担当。
-- `src/ui/`: Debug パネルなど DOM 連携を管理。
-- `src/config/defaults.ts`: アリーナプリセットとパラメータの集約。
+- `src/sim/`: バトルエンジン、AI、ログ、入力検証（`validation.ts`）。
+- `src/render/`: Phaser シーンと再生制御。攻撃射程サークルや HP レイアウトを描画。
+- `src/ui/`: React 製デバッグパネルと `window.$orbi` ブリッジ。
+- `src/config/defaults.ts`: 1v1 / 3v3 / AI デモなどのプリセット。
+- `src/types/`: グローバル型（`window.$orbi`）や再生情報の定義。
 
-詳細は [docs/README.md](./docs/README.md) と設計ドキュメントを参照してください。
+## ドキュメント
+
+- [docs/README.md](./docs/README.md) — ドキュメントの入り口と目的別ナビゲーション
+- 設計: [`docs/design/architecture.md`](./docs/design/architecture.md), [`simulation.md`](./docs/design/simulation.md), [`rendering.md`](./docs/design/rendering.md), [`parameters.md`](./docs/design/parameters.md)
+- 開発: [`docs/dev/setup.md`](./docs/dev/setup.md), [`testing.md`](./docs/dev/testing.md), [`ai-system.md`](./docs/dev/ai-system.md), [`roadmap.md`](./docs/dev/roadmap.md)
+- 履歴: [`docs/changelog.md`](./docs/changelog.md)
 
 ## 開発コマンド
 
-- `npm run dev` — Vite のホットリロード開発サーバー
-- `npm run build` — 本番ビルド（TypeScript 型チェックあり）
+- `npm run dev` — Vite ホットリロード開発サーバー
+- `npm run build` — 本番ビルド（TypeScript 型チェック付き）
 - `npm run preview` — `dist/` ビルドのローカル確認
-- `npm run test` — Vitest（happy-dom）でユニットテスト
-- `npm run test:coverage` — HTML & lcov カバレッジレポート生成
-- `npm run test:ui` — インタラクティブな Vitest UI
-
-## ドキュメント一覧
-
-| 種別 | ドキュメント                                     | 内容                                 |
-| ---- | ------------------------------------------------ | ------------------------------------ |
-| 概要 | [docs/README.md](./docs/README.md)               | ドキュメント全体の案内と索引         |
-| 設計 | [architecture.md](./docs/design/architecture.md) | レイヤー構造・データフロー・更新周期 |
-| 設計 | [simulation.md](./docs/design/simulation.md)     | シミュレーションルールと決定論の要点 |
-| 設計 | [rendering.md](./docs/design/rendering.md)       | 描画要素とレイアウト指針             |
-| 設計 | [parameters.md](./docs/design/parameters.md)     | バランス調整用パラメータの基準       |
-| 開発 | [setup.md](./docs/dev/setup.md)                  | 環境要件と初期セットアップ           |
-| 開発 | [testing.md](./docs/dev/testing.md)              | テスト実行とカバレッジ確認           |
-| 開発 | [roadmap.md](./docs/dev/roadmap.md)              | 直近の改善テーマ                     |
-| 履歴 | [changelog.md](./docs/changelog.md)              | 更新履歴と変更理由                   |
-
-不要になった情報は順次削除し、重要なドキュメントに集約しています。
+- `npm run test` — Vitest（happy-dom ランタイム）
+- `npm run test:ui` — Vitest UI
+- `npm run test:coverage` — HTML / lcov カバレッジ出力

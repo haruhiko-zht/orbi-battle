@@ -1,32 +1,32 @@
 # テストガイド
 
-シミュレーション層を中心に高い決定論を維持するため、テストは常に最新状態を確認してください。
+決定論を維持するため、ロジック変更時は必ずテストを最新化し、ログ差分を確認します。
 
 ## テスト環境
 
 - フレームワーク: Vitest（`happy-dom` ランタイム）
 - カバレッジ: `@vitest/coverage-v8`
-- 実行対象: `src/sim/**/__tests__`, `src/ui/**/__tests__`, `src/render/**/__tests__`
+- 主な対象: `src/sim/**/__tests__`, `src/ui/**/__tests__`, `src/render/**/__tests__`
 
-## よく使うコマンド
+## 基本コマンド
 
 ```bash
-npm run test          # 全テスト
-npm run test:ui       # UI モード（フォーカス実行）
-npm run test:coverage # HTML & lcov カバレッジ
+npm run test          # 全テストを 1 回実行
+npm run test:ui       # Vitest UI（絞り込み / 再実行向け）
+npm run test:coverage # HTML & lcov カバレッジ生成
 ```
 
 - 個別実行: `npx vitest run src/sim/__tests__/battle.test.ts`
-- ウォッチ: `npx vitest --watch`
+- ウォッチモード: `npx vitest --watch`
 
-## カバレッジと目安
+## カバレッジ基準
 
-- シミュレーション層（`src/sim/`）は 95% 以上を維持
-- UI/描画層は主要フローを単体テスト + 手動確認で補完
-- カバレッジ HTML は `coverage/index.html` に出力（リポジトリへコミットしない）
+- シミュレーション層（`src/sim/`）: ステート遷移を網羅し **ステートメント 95%以上** を維持。
+- UI/描画層: 主要フローとバインドをユニットテストし、不足分は手動確認 (`npm run preview`) で補う。
+- HTML レポートは `coverage/index.html` に出力するが、リポジトリにはコミットしない。
 
-## メンテナンス指針
+## メンテナンスポイント
 
-- 判定ロジックやパラメータを変更した場合は、戦闘ログの整合性テストを追加
-- 描画変更時は `debugPanel.test.ts` を更新し、UI の実体と乖離させない
-- 大きな仕様変更は Vitest スナップショットではなく明示的なアサーションへ置き換える
+- 判定ロジックやプリセットを変更したら、`BattleLog` の整合性テストを追加し、決定論が崩れていないか確認する。
+- 描画や UI を更新した際は `debugPanel.test.ts` などのスナップショットを再生成せず、明示的なアサーションに置き換える。
+- `window.$orbi` API を増やした場合はモックを更新し、UI からの呼び出しが安全に失敗することもテストする。
