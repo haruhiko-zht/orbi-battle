@@ -1,20 +1,12 @@
-import type { BattleConfig, BattleState, FighterState, Vec2 } from "./types";
+import type { BattleConfig, BattleState, FighterState } from "./types";
 import { makeRng } from "./rng";
 import { getAI } from "./ai";
 import { validateBattleConfig } from "./validation";
-
-/**
- * 位置を円形境界内にクランプする
- * @param p 位置ベクトル
- * @param r 円の半径
- * @returns クランプされた位置
- */
-function clampToCircle(p: Vec2, r: number): Vec2 {
-  const d2 = p.x * p.x + p.y * p.y;
-  if (d2 <= r * r) return p;
-  const d = Math.sqrt(d2);
-  return { x: (p.x / d) * r, y: (p.y / d) * r };
-}
+import {
+  createDefaultFighterSystems,
+  type FighterSystem,
+} from "./systems/fighterSystems";
+import type { FighterSystemContext } from "./systems/types";
 
 /**
  * バトルシミュレーションエンジン
@@ -31,12 +23,15 @@ export class Engine {
   private rng: () => number;
   /** 現在のバトル状態（ミュータブル） */
   state: BattleState;
+  /** ファイター処理のパイプライン */
+  private readonly fighterSystems: FighterSystem[];
 
   constructor(cfg: BattleConfig) {
     validateBattleConfig(cfg);
     this.cfg = cfg;
     this.dt = 1 / cfg.tickRate;
     this.rng = makeRng(cfg.seed);
+    this.fighterSystems = createDefaultFighterSystems();
 
     // 初期配置: チーム数に応じて円周を等分し、各セクション内で等間隔配置
     const r = cfg.arenaRadius * 0.7;
@@ -100,47 +95,17 @@ export class Engine {
     const ai = getAI(aiType);
     const decision = ai.decide(self, enemies, this.cfg.arenaRadius);
 
-    // クールダウン更新
-    if (self.cooldown > 0) {
-      self.cooldown = Math.max(0, self.cooldown - this.dt);
-    }
+    const context: FighterSystemContext = {
+      self,
+      decision,
+      state: this.state,
+      config: this.cfg,
+      dt: this.dt,
+    };
 
-    // 移動処理
-    if (decision.moveDirection) {
-      const { x, y } = decision.moveDirection;
-      const mag = Math.hypot(x, y);
-      if (mag > 0) {
-        const nx = x / mag;
-        const ny = y / mag;
-        self.pos.x += nx * self.params.speed * this.dt;
-        self.pos.y += ny * self.params.speed * this.dt;
-      }
+    for (const system of this.fighterSystems) {
+      system.update(context);
     }
-
-    // 攻撃処理
-    if (decision.targetId && self.cooldown === 0) {
-      const target = this.state.fighters.find(
-        (f) => f.id === decision.targetId
-      );
-      if (target && target.alive) {
-        // 射程チェック
-        const dist = Math.hypot(
-          target.pos.x - self.pos.x,
-          target.pos.y - self.pos.y
-        );
-        if (dist <= self.params.range) {
-          target.hp -= self.params.atk;
-          self.cooldown = self.params.cooldown;
-          if (target.hp <= 0) {
-            target.alive = false;
-            target.hp = 0;
-          }
-        }
-      }
-    }
-
-    // 円形境界にクランプ（アリーナ外に出ないようにする）
-    self.pos = clampToCircle(self.pos, this.cfg.arenaRadius);
   }
 
   /**

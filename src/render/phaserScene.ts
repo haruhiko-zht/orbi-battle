@@ -7,11 +7,11 @@ import {
   ARENA,
   RESULT_TEXT,
   TEAM_COLOR_PALETTE,
-  FRAME_CONTROL,
 } from "../config/renderConstants";
 import { resolveBattleSides, type BattleSides } from "../sim/sides";
 import type { PlaybackInfo } from "../types/playback";
 import { FighterObjectManager, HpHudRenderer } from "./battleLayers";
+import { BattlePlaybackController } from "./playbackController";
 
 /**
  * Phaser バトルシーン
@@ -27,18 +27,14 @@ export class BattleScene extends Phaser.Scene {
   private sides!: BattleSides;
   /** 現在描画中の状態 */
   private currentState!: BattleState;
-  /** ログ再生用の時間蓄積 */
-  private frameAccumulator = 0;
-  /** 再生一時停止フラグ */
-  private isPaused = false;
-  /** 再生速度 */
-  private playbackRate = 1;
   /** アリーナ（円形境界）の描画オブジェクト */
   arena!: Phaser.GameObjects.Arc;
   /** ファイター描画オブジェクト管理 */
   private fighterObjects!: FighterObjectManager;
   /** HPバー描画管理 */
   private hpHud!: HpHudRenderer;
+  /** 再生制御 */
+  private playback!: BattlePlaybackController;
   /** チームカラーのマップ（チームID -> 16進カラー値） */
   private teamColors: Map<string, number> = new Map();
   /** 勝敗表示テキスト */
@@ -58,6 +54,7 @@ export class BattleScene extends Phaser.Scene {
     this.fighterObjects = new FighterObjectManager(this);
     this.hpHud = new HpHudRenderer(this);
     this.initializeSimulation(this.cfg);
+    this.playback = new BattlePlaybackController(this.sim);
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
     this.setupArena();
     this.rebuildVisuals();
@@ -83,28 +80,10 @@ export class BattleScene extends Phaser.Scene {
    * @param delta 前フレームからの経過時間 [ミリ秒]
    */
   override update(_time: number, delta: number) {
-    if (this.isPaused || this.playbackRate <= 0) {
-      return;
-    }
-
-    const deltaSeconds = Math.min(delta / 1000, FRAME_CONTROL.maxDeltaTime);
-    this.frameAccumulator += deltaSeconds * this.playbackRate;
-
-    const frameDuration = this.sim.getFrameDuration();
-    let didAdvance = false;
-
-    while (this.frameAccumulator >= frameDuration && !this.sim.isFinished()) {
-      this.frameAccumulator -= frameDuration;
-      this.currentState = this.sim.step();
-      didAdvance = true;
-    }
-
-    if (this.sim.isFinished()) {
-      this.isPaused = true;
-      this.frameAccumulator = 0;
-    }
-
-    if (didAdvance) {
+    if (!this.playback) return;
+    const nextState = this.playback.update(delta);
+    if (nextState) {
+      this.currentState = nextState;
       this.renderState(this.currentState);
     }
   }
@@ -149,9 +128,9 @@ export class BattleScene extends Phaser.Scene {
     this.currentState = this.sim.getCurrentState();
     this.sides = resolveBattleSides(this.cfg);
     this.initializeTeamColors();
-    this.frameAccumulator = 0;
-    this.isPaused = false;
-    this.playbackRate = 1;
+    if (this.playback) {
+      this.playback.attachSimulation(this.sim);
+    }
   }
 
   /**
@@ -250,35 +229,28 @@ export class BattleScene extends Phaser.Scene {
    * 再生を開始
    */
   private play() {
-    this.isPaused = false;
-    this.frameAccumulator = 0;
+    this.playback.play();
   }
 
   /**
    * 再生を一時停止
    */
   private pause() {
-    this.isPaused = true;
-    this.frameAccumulator = 0;
+    this.playback.pause();
   }
 
   /**
    * 再生速度を設定
    */
   private setPlaybackRate(rate: number) {
-    if (!Number.isFinite(rate)) return;
-    this.playbackRate = Math.max(rate, 0);
+    this.playback.setPlaybackRate(rate);
   }
 
   /**
    * 指定フレームへシーク
    */
   private seekFrame(frameIndex: number) {
-    this.currentState = this.sim.seek(frameIndex);
-    this.frameAccumulator = 0;
-    if (this.sim.isFinished()) {
-      this.isPaused = true;
-    }
+    this.currentState = this.playback.seek(frameIndex);
     this.renderState(this.currentState);
   }
 
@@ -286,9 +258,7 @@ export class BattleScene extends Phaser.Scene {
    * 1フレームだけ進める
    */
   private stepFrame() {
-    this.isPaused = true;
-    this.currentState = this.sim.step();
-    this.frameAccumulator = 0;
+    this.currentState = this.playback.step();
     this.renderState(this.currentState);
   }
 
@@ -296,12 +266,6 @@ export class BattleScene extends Phaser.Scene {
    * 再生情報を取得
    */
   private getPlaybackInfo(): PlaybackInfo {
-    return {
-      frameIndex: this.sim.getFrameIndex(),
-      frameCount: this.sim.getFrameCount(),
-      isPaused: this.isPaused,
-      isFinished: this.sim.isFinished(),
-      playbackRate: this.playbackRate,
-    };
+    return this.playback.getPlaybackInfo();
   }
 }
