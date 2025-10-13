@@ -1,5 +1,5 @@
 import type { BattleConfig, BattleState } from "./types";
-import { Engine } from "./engine";
+import { Engine, type FighterSystemsFactory } from "./engine";
 import { type BattleLog, cloneConfig, cloneState } from "./log";
 import {
   assertFinitePositive,
@@ -15,6 +15,7 @@ export type SimulateBattleOptions = {
   maxSeconds?: number;
   placementStrategy?: PlacementStrategy;
   validationOptions?: BattleConfigValidationOptions;
+  createFighterSystems?: FighterSystemsFactory;
 };
 
 /**
@@ -45,6 +46,7 @@ export function simulateBattle(
   const engine = new Engine(cfg, {
     placementStrategy: opts?.placementStrategy,
     validationOptions: opts?.validationOptions,
+    createFighterSystems: opts?.createFighterSystems,
   });
   const frames: BattleState[] = [cloneState(engine.state)];
   const maxSeconds = opts?.maxSeconds ?? DEFAULT_MAX_SECONDS;

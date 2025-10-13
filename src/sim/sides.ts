@@ -26,6 +26,8 @@ export type TeamFighterGroup = {
  * BattleConfig からチーム情報を取得（順序は定義通り）。
  */
 export function resolveBattleTeams(cfg: BattleConfig): BattleTeamInfo[] {
+  // NOTE: 本プロジェクトは仕様として 2 チーム（味方/敵）固定。
+  // 多人数戦は対象外のため、ここで厳格にチェックして早期に気付けるようにしている。
   if (cfg.teams.length !== 2) {
     throw new Error(
       `[resolveBattleTeams] 2チーム構成（味方/敵）である必要があります。現在のチーム数: ${cfg.teams.length}`

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Engine } from "../engine";
 import type { BattleConfig, FighterParams } from "../types";
+import { createDefaultFighterSystems } from "../systems/fighterSystems";
 
 // テストヘルパー: 1v1 の BattleConfig を作成
 function makeConfig(
@@ -186,6 +187,24 @@ describe("Engine", () => {
       // 浮動小数点の誤差を考慮
       expect(engine.state.t).toBeCloseTo(dt * i, 10);
     }
+  });
+
+  it("カスタムファイターシステムを注入できる", () => {
+    const calls: string[] = [];
+    const engine = new Engine(defaultConfig, {
+      createFighterSystems: () => [
+        ...createDefaultFighterSystems(),
+        {
+          update({ self }) {
+            calls.push(self.id);
+          },
+        },
+      ],
+    });
+
+    engine.update();
+    expect(calls).toContain("A-0");
+    expect(calls).toContain("B-0");
   });
 
   it("不正な tickRate では Engine 生成時に例外を投げる", () => {

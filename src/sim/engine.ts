@@ -12,9 +12,12 @@ import {
 import type { FighterSystemContext } from "./systems/types";
 import { defaultPlacementStrategy, type PlacementStrategy } from "./placement";
 
+export type FighterSystemsFactory = (cfg: BattleConfig) => FighterSystem[];
+
 export type EngineOptions = {
   placementStrategy?: PlacementStrategy;
   validationOptions?: BattleConfigValidationOptions;
+  createFighterSystems?: FighterSystemsFactory;
 };
 
 /**
@@ -38,13 +41,17 @@ export class Engine {
   private readonly placementStrategy: PlacementStrategy;
 
   constructor(cfg: BattleConfig, options: EngineOptions = {}) {
-    const { placementStrategy = defaultPlacementStrategy, validationOptions } =
-      options;
+    const {
+      placementStrategy = defaultPlacementStrategy,
+      validationOptions,
+      createFighterSystems,
+    } = options;
     validateBattleConfig(cfg, validationOptions);
     this.cfg = cfg;
     this.dt = 1 / cfg.tickRate;
     this.rng = makeRng(cfg.seed);
-    this.fighterSystems = createDefaultFighterSystems();
+    this.fighterSystems =
+      createFighterSystems?.(this.cfg) ?? createDefaultFighterSystems();
     this.placementStrategy = placementStrategy;
 
     this.state = {

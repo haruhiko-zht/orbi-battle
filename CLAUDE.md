@@ -76,9 +76,11 @@ npm run format:check # 整形差分の検出
 - **ビジュアル演出**: `src/render/battleLayers.ts` を拡張し、シミュレーション層には影響させない。`BattleSim` から取得できる情報のみを利用します。
 - **サーバー連携**: Node.js から `simulateBattle()` を呼び出し、生成した `BattleLog` をクライアントに渡せば同じ演算を再生可能です。`seed` と `BattleConfig` を一致させることで検証が行えます。
 - **設定追加**: `src/config/defaults.ts` とバリデーション (`src/sim/validation.ts`) を更新し、UI 側のフォーム（`debugPanel.tsx`）に対応する入力を追加してください。
+- **システム拡張**: `EngineOptions.createFighterSystems` から `createDefaultFighterSystems()` を拡張したパイプラインを注入すると、職業・装備システムなどファイターごとの挙動差分を安全に実装できます。`FighterSystemContext.self.params` に追加フィールドを持たせて処理を分岐させてください。
 
 ## 守るべき制約
 
+- チーム構成は 2 チーム固定（味方 / 敵）が仕様です。多人数戦の一般化は不要で、`resolveBattleTeams()` などもこの前提で最適化されています。
 - 決定性を最優先: `Math.random()` や `Date.now()` などの非決定的 API はシミュレーション層で使用禁止。`src/sim/rng.ts` の擬似乱数を利用します。
 - 型安全の維持: `src/types` に共通型を定義し、`declare global`（`global.d.ts`）で `window.$orbi` を宣言済み。追加のグローバルは避ける。
 - パフォーマンス: シミュレーションは 60Hz (`tickRate`) 固定タイムステップ。ループ内の割り当てを最小化し、必要なら `systems/` に処理を分割します。
