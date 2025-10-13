@@ -7,6 +7,7 @@ import {
   FIGHTER_RANGE,
   HP_BAR,
   HP_TEXT,
+  RENDER_SCALE,
 } from "../config/renderConstants";
 
 type TeamColorResolver = (teamId: string) => number;
@@ -39,8 +40,10 @@ export class FighterObjectManager {
       const rangeCircle = this.ranges.get(fighter.id);
       if (!circle || !rangeCircle) continue;
       const color = getTeamColor(fighter.teamId);
+      const screenX = center.x + fighter.pos.x * RENDER_SCALE;
+      const screenY = center.y + fighter.pos.y * RENDER_SCALE;
       circle
-        .setPosition(center.x + fighter.pos.x, center.y + fighter.pos.y)
+        .setPosition(screenX, screenY)
         .setAlpha(fighter.alive ? FIGHTER.aliveAlpha : FIGHTER.deadAlpha);
       const strokeAlpha = fighter.alive
         ? FIGHTER_RANGE.strokeAlphaAlive
@@ -49,7 +52,7 @@ export class FighterObjectManager {
         ? FIGHTER_RANGE.fillAlphaAlive
         : FIGHTER_RANGE.fillAlphaDead;
       rangeCircle
-        .setPosition(center.x + fighter.pos.x, center.y + fighter.pos.y)
+        .setPosition(screenX, screenY)
         .setFillStyle(color, fillAlpha)
         .setStrokeStyle(FIGHTER_RANGE.strokeWidth, color, strokeAlpha);
     }
@@ -76,7 +79,7 @@ export class FighterObjectManager {
       .circle(
         center.x,
         center.y,
-        fighter.params.range,
+        fighter.params.range * RENDER_SCALE,
         color,
         FIGHTER_RANGE.fillAlphaAlive
       )
@@ -90,7 +93,7 @@ export class FighterObjectManager {
     const circle = this.scene.add.circle(
       center.x,
       center.y,
-      FIGHTER.radius,
+      FIGHTER.radius * RENDER_SCALE,
       color
     );
     this.fighters.set(fighter.id, circle);

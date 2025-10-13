@@ -6,6 +6,7 @@ import {
   ARENA,
   RESULT_TEXT,
   TEAM_COLOR_PALETTE,
+  RENDER_SCALE,
 } from "../config/renderConstants";
 import { resolveBattleTeams, type BattleTeamInfo } from "../sim/sides";
 import { FighterObjectManager, HpHudRenderer } from "./battleLayers";
@@ -133,7 +134,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.arena = this.add
-      .circle(cx, cy, this.cfg.arenaRadius, 0x0, ARENA.fillAlpha)
+      .circle(cx, cy, this.cfg.arenaRadius * RENDER_SCALE, 0x0, ARENA.fillAlpha)
       .setStrokeStyle(ARENA.strokeWidth, ARENA.strokeColor);
   }
 
@@ -163,6 +164,8 @@ export class BattleScene extends Phaser.Scene {
     }
     this.result = this.add.text(RESULT_TEXT.x, RESULT_TEXT.y, "", {
       color: RESULT_TEXT.color,
+      fontSize: RESULT_TEXT.fontSize,
+      fontFamily: RESULT_TEXT.fontFamily,
     });
   }
 
