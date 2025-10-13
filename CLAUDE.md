@@ -1,221 +1,87 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このドキュメントは Claude Code（claude.ai/code）向けの開発ガイドです。リポジトリの目的、レイヤー分割、テスト方針を把握した上で作業してください。
 
-## Project Overview
+## プロジェクト概要
 
-**orbi-battle** is a 2D circular arena auto-battle simulator built with TypeScript, Phaser, and Vitest. The project implements a **pre-simulation architecture** where battles are fully computed upfront and then replayed for visualization, enabling deterministic gameplay, easy debugging, and potential server-side verification.
+- **orbi-battle** は 2D 円形アリーナのオートバトルを、決定的シミュレーション（pre-simulation）→リプレイ描画の 2 段構成で実現します。
+- クライアント側は Phaser による描画と React 製デバッグ UI を持ち、`window.$orbi` 経由でバトルを再生成できます。
+- 設計ノートや仕様は `docs/`、追加ガイダンスは `AGENTS.md` を参照してください。
 
-## Development Commands
-
-### Setup
-
-```bash
-npm install
-npm run dev  # Start dev server at http://localhost:5173
-```
-
-### Testing
+## セットアップとコマンド
 
 ```bash
-npm test                  # Run all tests
-npm run test:ui          # Run tests with UI
-npm run test:coverage    # Generate coverage report (output: coverage/index.html)
-npx vitest <test-file>   # Run specific test file
-npx vitest --watch       # Run tests in watch mode
+npm install          # 依存関係の導入
+npm run dev          # Vite 開発サーバー (http://localhost:5173/)
+npm run build        # 本番ビルド (出力: dist/)
+npm run preview      # 本番ビルドのローカル確認
+npm run test         # Vitest (happy-dom)
+npm run test:ui      # Vitest UI
+npm run test:coverage# V8 カバレッジレポート
+npm run format       # Prettier 整形
+npm run format:check # 整形差分の検出
 ```
 
-### Build
+- 特定テストのみ実行したい場合は `npx vitest path/to/file.test.ts` または `npx vitest --watch` を用います。
 
-```bash
-npm run build    # Build for production (output: dist/)
-npm run preview  # Preview production build
-```
-
-## Architecture
-
-### Layer Separation (Critical Design Principle)
-
-The codebase is strictly divided into three independent layers:
+## アーキテクチャの全体像
 
 ```
-┌─────────────────────────────────────┐
-│    UI Layer (src/ui/)               │  ← Debug panel, HTML/CSS
-├─────────────────────────────────────┤
-│    Rendering Layer (src/render/)    │  ← Phaser visualization
-├─────────────────────────────────────┤
-│    Simulation Layer (src/sim/)      │  ← Pure logic, no dependencies
-├─────────────────────────────────────┤
-│    Config & Types (src/config/)     │  ← Shared types and defaults
-└─────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  UI Layer (src/ui/)                            │ ← React デバッグパネル / window.$orbi API
+├────────────────────────────────────────────────┤
+│  Rendering Layer (src/render/)                 │ ← Phaser シーン、レイヤー構築、再生制御
+├────────────────────────────────────────────────┤
+│  Simulation Layer (src/sim/)                   │ ← 決定的バトルエンジン、本体ロジック
+├────────────────────────────────────────────────┤
+│  Shared Config & Types (src/config/, src/types/)│ ← プリセット、型定義、再生情報
+└────────────────────────────────────────────────┘
 ```
 
-**Key Constraint**: The simulation layer ([src/sim/](src/sim/)) must remain completely independent of rendering and UI. It can run on Node.js, in tests, or on a server without any browser dependencies.
+- シミュレーション層は Node.js 互換を維持し、DOM/Phaser/API への依存を禁止します。
+- UI/レンダリング層は `window.$orbi` ブリッジを通じて設定やリプレイ制御を行います。
 
-### Pre-Simulation Architecture
+## 実行フロー
 
-Battles follow this execution flow:
+1. `src/main.ts` が Phaser ゲームとデバッグパネルを初期化し、`window.$orbi.reset` を公開。
+2. `window.$orbi.reset(config)` が呼ばれると、`simulateBattle(config)`（`src/sim/battle.ts`）が全フレームを計算し `BattleLog` を返却。
+3. `BattleSim`（`src/sim/battle.ts`）が固定タイムステップでログを再生し、`PlaybackInfo` を `src/types/playback.ts` で共有。
+4. `src/render/phaserScene.ts` と関連コントローラが `BattleSim` から現在フレームを取得して描画。
+5. `src/ui/debugPanel.tsx` が `orbiBridge` 経由でリプレイ状態をポーリングし、UI を同期。
 
-1. **Simulation Phase** ([src/sim/battle.ts](src/sim/battle.ts)):
-   - `simulateBattle(config)` computes the entire battle upfront
-   - [src/sim/engine.ts](src/sim/engine.ts) runs frame-by-frame updates (default 60Hz)
-   - Returns a `BattleLog` containing all frames
+## 主要モジュール
 
-2. **Replay Phase** ([src/sim/battle.ts](src/sim/battle.ts)):
-   - `BattleSim` class handles fixed-timestep playback
-   - Independent of rendering frame rate
-   - Enables pause, fast-forward, rewind (future)
+- `src/sim/engine.ts`: フレーム更新の中心。移動、攻撃、クールダウン、勝敗判定を管理。
+- `src/sim/ai/`: `AI_OPTIONS` や AI 戦略（`aggressive`, `defensive`, `nearest` など）を定義。
+- `src/sim/systems/`: 位置計算・衝突・攻撃解決などのドメイン別サブルーチン。
+- `src/sim/placement/`: 円形アリーナ内での初期配置。
+- `src/sim/log.ts`: `cloneConfig`, `cloneState` など決定性を維持するユーティリティ。
+- `src/render/battleRuntimeController.ts`: `BattleSim` の再生速度・一時停止・シークを管理。
+- `src/render/battleLayers.ts`: Phaser 用の描画レイヤー生成。
+- `src/render/playbackController.ts`: フレーム単位の進行と UI 連携。
+- `src/ui/api/orbiBridge.ts`: `window.$orbi` と React UI の間の状態同期。
+- `src/config/defaults.ts`: デフォルトプリセット (`defaults`, `defaults3v3`, `aiDemoConfig`, `mixedAI3v3` など)。
+- `src/types/playback.ts`: 再生状態 (`PlaybackInfo`) の共有型。
 
-3. **Rendering** ([src/render/phaserScene.ts](src/render/phaserScene.ts)):
-   - `BattleScene.update()` fetches current frame from `BattleSim`
-   - Draws fighters and arena based on `BattleState`
-   - No game logic—pure visualization
+## テストと品質指針
 
-### Core Data Flow
+- シミュレーション層の変更時は `npm run test` を必須実行。RNG/物理計算の差分が疑われる場合は `npm run test:coverage` で範囲を確認し、必要に応じて新規テストを追加します。
+- 描画層は Phaser 依存のため単体テストは限定的です。ビジュアルの変更を行った場合は `npm run preview` でキャプチャを取り、PR に添付してください。
+- `src/ui` の React コンポーネントはフック単位で切り出し、入力（props）と副作用をテストしやすく保ちます。`__tests__` ディレクトリを使用し、`happy-dom` 環境向けのテストで DOM 操作を検証します。
+- Prettier (`npm run format`) と TypeScript strict モードを前提としており、`any` の使用は避けます。
 
-**Initialization**:
+## 拡張時のヒント
 
-```
-main.ts → Phaser.Game → BattleScene.create()
-                      → createDebugPanel()
-                      → window.$orbi API
-```
+- **AI 追加**: `src/sim/ai/types.ts` に列挙を追加し、`src/sim/ai/index.ts` のエクスポートと `AI_OPTIONS` を更新。テストで決定性を確認。
+- **ビジュアル演出**: `src/render/battleLayers.ts` を拡張し、シミュレーション層には影響させない。`BattleSim` から取得できる情報のみを利用します。
+- **サーバー連携**: Node.js から `simulateBattle()` を呼び出し、生成した `BattleLog` をクライアントに渡せば同じ演算を再生可能です。`seed` と `BattleConfig` を一致させることで検証が行えます。
+- **設定追加**: `src/config/defaults.ts` とバリデーション (`src/sim/validation.ts`) を更新し、UI 側のフォーム（`debugPanel.tsx`）に対応する入力を追加してください。
 
-**Reset/Restart**:
+## 守るべき制約
 
-```
-DebugPanel [Restart] → window.$orbi.reset(config)
-                     → BattleScene.reset()
-                     → BattleSim.reset()
-                     → simulateBattle() [recompute all frames]
-```
+- 決定性を最優先: `Math.random()` や `Date.now()` などの非決定的 API はシミュレーション層で使用禁止。`src/sim/rng.ts` の擬似乱数を利用します。
+- 型安全の維持: `src/types` に共通型を定義し、`declare global`（`global.d.ts`）で `window.$orbi` を宣言済み。追加のグローバルは避ける。
+- パフォーマンス: シミュレーションは 60Hz (`tickRate`) 固定タイムステップ。ループ内の割り当てを最小化し、必要なら `systems/` に処理を分割します。
+- ドキュメント・コメントは日本語を基調にしつつ、必要時に英語原語を併記して意図を明確にしてください。
 
-**Per-Frame Rendering**:
-
-```
-requestAnimationFrame → BattleScene.update(delta)
-                      → BattleSim.fixedUpdate(dt)
-                      → BattleLog.frames[index]
-                      → renderState()
-```
-
-## Key Files and Their Roles
-
-### Simulation Layer ([src/sim/](src/sim/))
-
-- **[types.ts](src/sim/types.ts)**: Core type definitions (`BattleConfig`, `BattleState`, `FighterState`, `Vec2`)
-- **[engine.ts](src/sim/engine.ts)**: Game logic (movement, combat, collision, win conditions)
-- **[battle.ts](src/sim/battle.ts)**: `simulateBattle()` function and `BattleSim` replay class
-- **[rng.ts](src/sim/rng.ts)**: Seedable random number generator for determinism
-- **[log.ts](src/sim/log.ts)**: `BattleLog` type and deep clone utilities
-- **[fighter.ts](src/sim/fighter.ts)**: Reserved for future AI extension
-
-### Rendering Layer ([src/render/](src/render/))
-
-- **[phaserScene.ts](src/render/phaserScene.ts)**: Phaser scene that visualizes `BattleState`
-- HP レイアウトは 2 チーム前提（`teams[0]` = 味方 / `teams[1]` = 敵）。追加チームは警告のうえ単列表示にフォールバック
-
-### UI Layer ([src/ui/](src/ui/))
-
-- **[debugPanel.ts](src/ui/debugPanel.ts)**: HTML panel for adjusting battle parameters; exposes `window.$orbi.reset()`
-
-### Entry Point
-
-- **[main.ts](src/main.ts)**: Initializes Phaser game and debug panel
-
-### Configuration
-
-- **[defaults.ts](src/config/defaults.ts)**: Default battle parameters (`defaults`, `defaults3v3`)
-
-## Testing Philosophy
-
-- **101 tests** with **96% coverage** on core simulation logic
-- Simulation layer is fully unit tested (no mocks needed)
-- Rendering layer tested via type checks and manual verification (Canvas API not testable in happy-dom)
-- All tests use Vitest with happy-dom environment
-
-**Coverage highlights**:
-
-- [src/sim/log.ts](src/sim/log.ts), [src/sim/rng.ts](src/sim/rng.ts), [src/ui/debugPanel.ts](src/ui/debugPanel.ts): 100%
-- [src/sim/engine.ts](src/sim/engine.ts): 96.15%
-- [src/sim/battle.ts](src/sim/battle.ts): 95.52%
-
-## Development Patterns
-
-### Deterministic Behavior
-
-All simulations are deterministic based on `seed` in `BattleConfig`. Same seed + same config = same outcome. This is critical for:
-
-- Replay consistency
-- Server-side verification
-- Debugging
-
-### Immutability Assumptions
-
-- `BattleConfig` and `BattleLog` are treated as immutable once created
-- Use `cloneConfig()` and `cloneState()` from [src/sim/log.ts](src/sim/log.ts) when deep copies are needed
-- Engine updates state in-place during simulation, but frames are cloned before being stored in logs
-
-### Fixed Timestep
-
-- Game logic runs at `tickRate` (default 60Hz)
-- Rendering can run at different FPS without affecting simulation
-- `BattleSim.fixedUpdate(dt)` accumulates time and advances frames when threshold is reached
-
-### Type Safety
-
-- All APIs have explicit TypeScript types
-- No `any` types in simulation logic
-- `window.$orbi` is properly typed via global declaration in [src/global.d.ts](src/global.d.ts)
-- **TypeScript strict mode enabled** with additional compiler checks:
-  - `noImplicitReturns`: Ensures all code paths return values
-  - `noFallthroughCasesInSwitch`: Prevents accidental switch fallthrough
-  - `noImplicitOverride`: Requires explicit `override` modifier when overriding class methods
-
-## Extension Points
-
-### Adding New Fighter AI
-
-Modify [src/sim/engine.ts](src/sim/engine.ts) `stepFighter()` method or create AI strategy pattern in [src/sim/fighter.ts](src/sim/fighter.ts).
-
-### Adding Visual Effects
-
-Extend [src/render/phaserScene.ts](src/render/phaserScene.ts) without touching simulation layer. Effects should be purely cosmetic.
-
-### Server-Side Integration
-
-Export `simulateBattle()` to Node.js environment. Send `BattleLog` to client for replay. Server can validate client-submitted logs by re-running simulation with same config/seed.
-
-### Team/Fighter Configuration
-
-Currently supports multiple teams with multiple fighters each. Teams are defined in `BattleConfig.teams[]`. Each team has an `id` and array of `FighterParams`. Initial placement is automatically calculated in circular sectors.
-
-## Important Constraints
-
-- **Never add rendering/DOM dependencies to [src/sim/](src/sim/)** - it must remain Node.js compatible
-- **Maintain determinism** - avoid `Math.random()`, `Date.now()`, or any non-deterministic APIs in simulation
-- **Maximum battle duration**: 60 seconds (configurable in `simulateBattle` options)
-- **Fixed update rate**: `tickRate` defines simulation granularity (default 60Hz)
-- **Japanese comments**: This project uses Japanese for comments and documentation
-
-## Documentation
-
-Comprehensive design docs are in [docs/design/](docs/design/):
-
-- [architecture.md](docs/design/architecture.md): Layer structure, data flow, extension points
-- [simulation.md](docs/design/simulation.md): AI logic and determinism details
-- [rendering.md](docs/design/rendering.md): Rendering surface, layout decisions
-- [parameters.md](docs/design/parameters.md): Default stats and balancing notes
-
-Development guides in [docs/dev/](docs/dev/):
-
-- [setup.md](docs/dev/setup.md): Environment requirements and onboarding
-- [testing.md](docs/dev/testing.md): Running Vitest and interpreting coverage
-- [roadmap.md](docs/dev/roadmap.md): Near-term priorities
-- [ai-system.md](docs/dev/ai-system.md): Strategy AI architecture
-
-## GitHub Actions
-
-- Deploys to GitHub Pages on push to `main` branch
-- Runs `npm ci`, `npm run build`, uploads `dist/` folder
-- Workflow: [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+以上を踏まえ、変更内容に応じたテスト・ドキュメント更新を忘れずに行ってください。
