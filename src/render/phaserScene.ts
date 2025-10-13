@@ -1,24 +1,17 @@
 import Phaser from "phaser";
-import type { BattleConfig, BattleState, FighterState } from "../sim/types";
+import type { BattleConfig, BattleState } from "../sim/types";
 import { BattleSim } from "../sim/battle";
 import { defaults3v3 } from "../config/defaults";
 import {
   BACKGROUND_COLOR,
   ARENA,
-  FIGHTER,
-  FIGHTER_RANGE,
-  HP_BAR,
-  HP_TEXT,
   RESULT_TEXT,
   TEAM_COLOR_PALETTE,
   FRAME_CONTROL,
 } from "../config/renderConstants";
-import {
-  resolveBattleSides,
-  resolveFighterSides,
-  type BattleSides,
-} from "../sim/sides";
+import { resolveBattleSides, type BattleSides } from "../sim/sides";
 import type { PlaybackInfo } from "../types/playback";
+import { FighterObjectManager, HpHudRenderer } from "./battleLayers";
 
 /**
  * Phaser バトルシーン
@@ -42,14 +35,10 @@ export class BattleScene extends Phaser.Scene {
   private playbackRate = 1;
   /** アリーナ（円形境界）の描画オブジェクト */
   arena!: Phaser.GameObjects.Arc;
-  /** ファイターの描画オブジェクトマップ（ファイターID -> 円形） */
-  fighters: Map<string, Phaser.GameObjects.Arc> = new Map();
-  /** ファイター攻撃範囲の描画オブジェクトマップ（ファイターID -> 円形） */
-  fighterRanges: Map<string, Phaser.GameObjects.Arc> = new Map();
-  /** ファイターのHPバーマップ（ファイターID -> Graphics） */
-  fighterHpBars: Map<string, Phaser.GameObjects.Graphics> = new Map();
-  /** ファイターのHPテキストマップ（ファイターID -> Text） */
-  fighterHpTexts: Map<string, Phaser.GameObjects.Text> = new Map();
+  /** ファイター描画オブジェクト管理 */
+  private fighterObjects!: FighterObjectManager;
+  /** HPバー描画管理 */
+  private hpHud!: HpHudRenderer;
   /** チームカラーのマップ（チームID -> 16進カラー値） */
   private teamColors: Map<string, number> = new Map();
   /** 勝敗表示テキスト */
@@ -66,10 +55,12 @@ export class BattleScene extends Phaser.Scene {
    * - グローバルAPIを公開
    */
   create() {
+    this.fighterObjects = new FighterObjectManager(this);
+    this.hpHud = new HpHudRenderer(this);
     this.initializeSimulation(this.cfg);
     this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
     this.setupArena();
-    this.buildFighterObjects(this.currentState);
+    this.rebuildVisuals();
     this.setupResultText();
     this.setupGlobalApi();
     this.renderState(this.currentState);
@@ -80,10 +71,9 @@ export class BattleScene extends Phaser.Scene {
    * @param cfg 新しいバトル設定
    */
   reset(cfg: BattleConfig) {
-    this.destroyFighterObjects();
     this.initializeSimulation(cfg);
     this.setupArena();
-    this.buildFighterObjects(this.currentState);
+    this.rebuildVisuals();
     this.renderState(this.currentState);
   }
 
@@ -128,122 +118,22 @@ export class BattleScene extends Phaser.Scene {
    * @param state 描画する状態
    */
   private renderState(state: BattleState) {
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
+    if (!this.fighterObjects || !this.hpHud) return;
+    const center = this.getSceneCenter();
+    const resolveColor = (teamId: string) => this.getTeamColor(teamId);
 
-    // 全ファイターの位置を更新
-    for (const fighter of state.fighters) {
-      const circle = this.fighters.get(fighter.id);
-      const rangeCircle = this.fighterRanges.get(fighter.id);
-      const color = this.getTeamColor(fighter.teamId);
-      if (circle) {
-        circle.setPosition(cx + fighter.pos.x, cy + fighter.pos.y);
-        // 死亡時は半透明に
-        circle.setAlpha(fighter.alive ? FIGHTER.aliveAlpha : FIGHTER.deadAlpha);
-      }
-      if (rangeCircle) {
-        const strokeAlpha = fighter.alive
-          ? FIGHTER_RANGE.strokeAlphaAlive
-          : FIGHTER_RANGE.strokeAlphaDead;
-        const fillAlpha = fighter.alive
-          ? FIGHTER_RANGE.fillAlphaAlive
-          : FIGHTER_RANGE.fillAlphaDead;
-        rangeCircle
-          .setPosition(cx + fighter.pos.x, cy + fighter.pos.y)
-          .setFillStyle(color, fillAlpha)
-          .setStrokeStyle(FIGHTER_RANGE.strokeWidth, color, strokeAlpha);
-      }
+    this.fighterObjects.update(state, center, resolveColor);
+    this.hpHud.update(
+      state,
+      this.sides,
+      this.scale.width,
+      this.scale.height,
+      resolveColor
+    );
+
+    if (this.result) {
+      this.result.setText(state.winner ? `WINNER: ${state.winner}` : "");
     }
-
-    // HPバーの描画：味方（右列）・敵（左列）
-    const w = HP_BAR.width;
-    const h = HP_BAR.height;
-    const pad = HP_BAR.padding;
-    const leftOffset = HP_BAR.leftOffset;
-    const rightOffset = this.scale.width - w - leftOffset;
-    const { ally, enemy } = resolveFighterSides(state, this.sides);
-
-    let yOffsetEnemy = this.scale.height - h;
-    for (const fighter of enemy) {
-      const hpBar = this.fighterHpBars.get(fighter.id);
-      const hpText = this.fighterHpTexts.get(fighter.id);
-      if (!hpBar || !hpText) continue;
-      this.renderHpBar(fighter, hpBar, hpText, leftOffset, yOffsetEnemy, w, h);
-      yOffsetEnemy -= h + pad;
-    }
-
-    let yOffsetAlly = this.scale.height - h;
-    for (const fighter of ally) {
-      const hpBar = this.fighterHpBars.get(fighter.id);
-      const hpText = this.fighterHpTexts.get(fighter.id);
-      if (!hpBar || !hpText) continue;
-      this.renderHpBar(fighter, hpBar, hpText, rightOffset, yOffsetAlly, w, h);
-      yOffsetAlly -= h + pad;
-    }
-
-    this.result.setText(state.winner ? `WINNER: ${state.winner}` : "");
-  }
-
-  /**
-   * 初期状態に合わせて描画オブジェクトを生成
-   */
-  private buildFighterObjects(state: BattleState) {
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
-
-    for (const fighter of state.fighters) {
-      const color = this.getTeamColor(fighter.teamId);
-      // 攻撃範囲の可視化（デバッグ向け）
-      const rangeCircle = this.add
-        .circle(
-          cx,
-          cy,
-          fighter.params.range,
-          color,
-          FIGHTER_RANGE.fillAlphaAlive
-        )
-        .setStrokeStyle(
-          FIGHTER_RANGE.strokeWidth,
-          color,
-          FIGHTER_RANGE.strokeAlphaAlive
-        );
-      this.fighterRanges.set(fighter.id, rangeCircle);
-
-      const circle = this.add.circle(cx, cy, FIGHTER.radius, color);
-      this.fighters.set(fighter.id, circle);
-
-      const hpBar = this.add.graphics();
-      this.fighterHpBars.set(fighter.id, hpBar);
-
-      const hpText = this.add.text(0, 0, "", {
-        color: HP_TEXT.color,
-        fontSize: HP_TEXT.fontSize,
-        fontFamily: HP_TEXT.fontFamily,
-      });
-      this.fighterHpTexts.set(fighter.id, hpText);
-    }
-  }
-
-  /**
-   * 既存の描画オブジェクトを破棄
-   */
-  private destroyFighterObjects() {
-    for (const circle of this.fighters.values()) {
-      circle.destroy();
-    }
-    for (const rangeCircle of this.fighterRanges.values()) {
-      rangeCircle.destroy();
-    }
-    for (const hpBar of this.fighterHpBars.values()) {
-      hpBar.destroy();
-    }
-    for (const hpText of this.fighterHpTexts.values()) {
-      hpText.destroy();
-    }
-    this.fighters.clear();
-    this.fighterRanges.clear();
-    this.fighterHpBars.clear();
-    this.fighterHpTexts.clear();
   }
 
   /**
@@ -278,6 +168,23 @@ export class BattleScene extends Phaser.Scene {
     this.arena = this.add
       .circle(cx, cy, this.cfg.arenaRadius, 0x0, ARENA.fillAlpha)
       .setStrokeStyle(ARENA.strokeWidth, ARENA.strokeColor);
+  }
+
+  /**
+   * 描画オブジェクトを現在の状態に合わせて再構築
+   */
+  private rebuildVisuals() {
+    if (!this.fighterObjects || !this.hpHud) return;
+    const center = this.getSceneCenter();
+    const resolveColor = (teamId: string) => this.getTeamColor(teamId);
+    this.fighterObjects.rebuild(this.currentState, center, resolveColor);
+    this.hpHud.rebuild(
+      this.currentState,
+      this.sides,
+      this.scale.width,
+      this.scale.height,
+      resolveColor
+    );
   }
 
   /**
@@ -333,37 +240,12 @@ export class BattleScene extends Phaser.Scene {
     return this.teamColors.get(teamId)!;
   }
 
-  /**
-   * HPバーを描画（共通処理）
-   */
-  private renderHpBar(
-    fighter: FighterState,
-    hpBar: Phaser.GameObjects.Graphics,
-    hpText: Phaser.GameObjects.Text,
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) {
-    hpBar.clear();
-    const ratio = fighter.params.hpMax
-      ? Phaser.Math.Clamp(fighter.hp / fighter.params.hpMax, 0, 1)
-      : 0;
-    const color = this.getTeamColor(fighter.teamId);
-
-    hpBar.fillStyle(HP_BAR.backgroundColor).fillRect(x, y, width, height);
-    hpBar.fillStyle(color).fillRect(x, y, width * ratio, height);
-
-    const text = `${fighter.id}: ${fighter.hp.toFixed(1)} / ${
-      fighter.params.hpMax
-    }`;
-    hpText.setText(text);
-    hpText.setPosition(
-      x + width / 2 - hpText.width / 2,
-      y + height / 2 - hpText.height / 2
-    );
+  private getSceneCenter() {
+    return {
+      x: this.scale.width / 2,
+      y: this.scale.height / 2,
+    };
   }
-
   /**
    * 再生を開始
    */

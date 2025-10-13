@@ -1,7 +1,5 @@
 import type { BattleConfig } from "./types";
-
-/** 許可されている AI タイプ（ランタイム検証用） */
-const VALID_AI_TYPES = new Set(["nearest", "aggressive", "defensive"]);
+import { AI_TYPES, isAIType } from "./ai/types";
 
 /**
  * 数値が有限かつ 0 より大きい（allowZero=true の場合は 0 以上）であることを検証
@@ -68,12 +66,9 @@ export function validateBattleConfig(cfg: BattleConfig) {
         allowZero: true,
       });
 
-      if (
-        typeof fighter.aiType !== "undefined" &&
-        !VALID_AI_TYPES.has(fighter.aiType)
-      ) {
+      if (typeof fighter.aiType !== "undefined" && !isAIType(fighter.aiType)) {
         throw new Error(
-          `${basePath}.aiType が不正です（nearest/aggressive/defensive のいずれか）`
+          `${basePath}.aiType が不正です（${AI_TYPES.join("/")} のいずれか）`
         );
       }
     });

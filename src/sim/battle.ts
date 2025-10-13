@@ -60,6 +60,8 @@ export class BattleSim {
   private log: BattleLog;
   /** 現在のフレームインデックス */
   private frameIndex = 0;
+  /** 固定タイムステップ用の時間蓄積 [秒] */
+  private accumulator = 0;
   /** 現在表示中の状態（フレームのコピー） */
   private state: BattleState;
   /** 再生中フラグ */
@@ -79,6 +81,7 @@ export class BattleSim {
   reset(cfg: BattleConfig) {
     this.log = simulateBattle(cfg);
     this.frameIndex = 0;
+    this.accumulator = 0;
     this.state = cloneState(this.log.frames[0]);
     this.running = true;
   }
@@ -107,6 +110,35 @@ export class BattleSim {
     if (this.frameIndex >= this.log.frames.length - 1) {
       this.running = false;
     }
+    return this.state;
+  }
+
+  /**
+   * 固定タイムステップ更新
+   * - deltaSeconds を経過時間として蓄積し、必要に応じて step() を呼び出す
+   *
+   * @param deltaSeconds 経過時間 [秒]
+   * @returns 現在の状態
+   */
+  fixedUpdate(deltaSeconds: number): BattleState {
+    if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
+      deltaSeconds = 0;
+    }
+
+    if (deltaSeconds > 0 && this.running) {
+      this.accumulator += deltaSeconds;
+      const frameDuration = this.getFrameDuration();
+
+      while (this.accumulator >= frameDuration && !this.isFinished()) {
+        this.accumulator -= frameDuration;
+        this.step();
+      }
+    }
+
+    if (this.isFinished()) {
+      this.accumulator = 0;
+    }
+
     return this.state;
   }
 

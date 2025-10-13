@@ -1,5 +1,8 @@
 import type { FighterState, Vec2 } from "../types";
 
+/** 利用可能な AI タイプ一覧 */
+export const AI_TYPES = ["nearest", "aggressive", "defensive"] as const;
+
 /**
  * AI の決定結果
  */
@@ -32,4 +35,13 @@ export interface FighterAI {
 /**
  * AI の種類を表す文字列リテラル型
  */
-export type AIType = "nearest" | "aggressive" | "defensive";
+export type AIType = (typeof AI_TYPES)[number];
+
+/**
+ * ランタイム値が AIType かどうかを判定
+ */
+export function isAIType(value: unknown): value is AIType {
+  return (
+    typeof value === "string" && (AI_TYPES as readonly string[]).includes(value)
+  );
+}

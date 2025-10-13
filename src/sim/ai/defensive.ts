@@ -1,13 +1,6 @@
-import type { FighterState, Vec2 } from "../types";
+import type { FighterState } from "../types";
 import type { FighterAI, AIDecision } from "./types";
-
-/**
- * ベクトルを正規化（長さ1にする）
- */
-function normalize(x: number, y: number): Vec2 {
-  const d = Math.hypot(x, y) || 1;
-  return { x: x / d, y: y / d };
-}
+import { findNearestEnemy, normalizeVector } from "./utils";
 
 /**
  * 防御的な AI
@@ -20,31 +13,11 @@ export class DefensiveAI implements FighterAI {
     enemies: FighterState[],
     _arenaRadius: number
   ): AIDecision {
-    if (enemies.length === 0) {
+    const nearest = findNearestEnemy(self, enemies);
+    if (!nearest) {
       return { targetId: null, moveDirection: null };
     }
-
-    // 最も近い敵を選択
-    let nearest = enemies[0];
-    let minDist = Math.hypot(
-      nearest.pos.x - self.pos.x,
-      nearest.pos.y - self.pos.y
-    );
-
-    for (const enemy of enemies) {
-      const dist = Math.hypot(
-        enemy.pos.x - self.pos.x,
-        enemy.pos.y - self.pos.y
-      );
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = enemy;
-      }
-    }
-
-    const dx = nearest.pos.x - self.pos.x;
-    const dy = nearest.pos.y - self.pos.y;
-    const dist = Math.hypot(dx, dy);
+    const { delta, fighter, distance: dist } = nearest;
 
     const range = self.params.range;
     const safeDistance = range * 0.8; // 射程の80%を安全距離とする
@@ -52,19 +25,19 @@ export class DefensiveAI implements FighterAI {
     if (dist < safeDistance) {
       // 近すぎる場合は距離を取る
       return {
-        targetId: nearest.id,
-        moveDirection: normalize(-dx, -dy), // 敵から離れる方向
+        targetId: fighter.id,
+        moveDirection: normalizeVector(-delta.x, -delta.y), // 敵から離れる方向
       };
     } else if (dist > range) {
       // 射程外なら接近
       return {
-        targetId: nearest.id,
-        moveDirection: normalize(dx, dy),
+        targetId: fighter.id,
+        moveDirection: normalizeVector(delta.x, delta.y),
       };
     } else {
       // 適切な距離（射程80%〜100%）なら停止して攻撃
       return {
-        targetId: nearest.id,
+        targetId: fighter.id,
         moveDirection: null,
       };
     }
