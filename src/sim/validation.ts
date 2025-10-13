@@ -1,6 +1,17 @@
 import type { BattleConfig } from "./types";
 import { AI_TYPES, isAIType } from "./ai/types";
 
+export type BattleConfigValidationOptions = {
+  /**
+   * チーム数の期待値。指定されていない場合は最小人数のみ検証。
+   */
+  expectedTeamCount?: number;
+  /**
+   * 必要な最小チーム数。デフォルトは1。
+   */
+  minTeams?: number;
+};
+
 /**
  * 数値が有限かつ 0 より大きい（allowZero=true の場合は 0 以上）であることを検証
  */
@@ -25,20 +36,26 @@ export function assertFinitePositive(
  * BattleConfig の妥当性を検証し、異常値があれば例外を投げる
  * - 想定外の設定値でシミュレーションが暴走するのを防ぐ
  */
-export function validateBattleConfig(cfg: BattleConfig) {
+export function validateBattleConfig(
+  cfg: BattleConfig,
+  options: BattleConfigValidationOptions = {}
+) {
   if (!Number.isFinite(cfg.seed)) {
     throw new Error("BattleConfig.seed は有限数である必要があります");
   }
   assertFinitePositive(cfg.tickRate, "BattleConfig.tickRate");
   assertFinitePositive(cfg.arenaRadius, "BattleConfig.arenaRadius");
 
-  if (!Array.isArray(cfg.teams) || cfg.teams.length === 0) {
-    throw new Error("BattleConfig.teams には 1 チーム以上が必要です");
+  const expectedTeams = options.expectedTeamCount ?? 2;
+  const minTeams = options.minTeams ?? expectedTeams ?? 1;
+
+  if (!Array.isArray(cfg.teams) || cfg.teams.length < minTeams) {
+    throw new Error("BattleConfig.teams には 2 チーム以上が必要です");
   }
 
-  if (cfg.teams.length !== 2) {
+  if (typeof expectedTeams === "number" && cfg.teams.length !== expectedTeams) {
     throw new Error(
-      "BattleConfig.teams は味方・敵の2チーム構成である必要があります"
+      `BattleConfig.teams は ${expectedTeams} チーム構成である必要があります`
     );
   }
 

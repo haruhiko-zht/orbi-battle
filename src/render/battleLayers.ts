@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { BattleState, FighterState } from "../sim/types";
-import type { BattleSides } from "../sim/sides";
-import { resolveFighterSides } from "../sim/sides";
+import type { BattleTeamInfo, TeamFighterGroup } from "../sim/sides";
+import { groupFightersByTeam } from "../sim/sides";
 import {
   FIGHTER,
   FIGHTER_RANGE,
@@ -97,15 +97,101 @@ export class FighterObjectManager {
   }
 }
 
+type HpHudLayoutContext = {
+  teams: TeamFighterGroup[];
+  viewportWidth: number;
+  viewportHeight: number;
+  barWidth: number;
+  barHeight: number;
+  padding: number;
+  leftOffset: number;
+};
+
+type HpHudPlacement = {
+  fighter: FighterState;
+  x: number;
+  y: number;
+};
+
+export type HpHudLayoutStrategy = (
+  context: HpHudLayoutContext
+) => HpHudPlacement[];
+
+const defaultHpHudLayout: HpHudLayoutStrategy = ({
+  teams,
+  viewportWidth,
+  viewportHeight,
+  barWidth,
+  barHeight,
+  padding,
+  leftOffset,
+}) => {
+  if (teams.length === 0) {
+    return [];
+  }
+
+  const placements: HpHudPlacement[] = [];
+  const baseY = viewportHeight - barHeight;
+  const columnXs = computeColumnPositions(
+    teams.length,
+    viewportWidth,
+    barWidth,
+    padding,
+    leftOffset
+  );
+
+  teams.forEach((group, columnIndex) => {
+    let currentY = baseY;
+    for (const fighter of group.fighters) {
+      placements.push({
+        fighter,
+        x: columnXs[columnIndex],
+        y: currentY,
+      });
+      currentY -= barHeight + padding;
+    }
+  });
+
+  return placements;
+};
+
+function computeColumnPositions(
+  teamCount: number,
+  viewportWidth: number,
+  barWidth: number,
+  padding: number,
+  leftOffset: number
+): number[] {
+  if (teamCount === 1) {
+    const centered = (viewportWidth - barWidth) / 2;
+    return [Math.max(leftOffset, centered)];
+  }
+  if (teamCount === 2) {
+    return [
+      viewportWidth - barWidth - leftOffset, // team index 0 -> 右側
+      leftOffset, // team index 1 -> 左側
+    ];
+  }
+
+  const totalWidth = barWidth * teamCount + padding * (teamCount - 1);
+  const startX = Math.max(leftOffset, (viewportWidth - totalWidth) / 2);
+  return Array.from({ length: teamCount }, (_, index) => {
+    return startX + index * (barWidth + padding);
+  });
+}
+
 export class HpHudRenderer {
   private hpBars = new Map<string, Phaser.GameObjects.Graphics>();
   private hpTexts = new Map<string, Phaser.GameObjects.Text>();
 
-  constructor(private readonly scene: Phaser.Scene) {}
+  constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly layout: HpHudLayoutStrategy = defaultHpHudLayout
+  ) {}
 
   rebuild(
     state: BattleState,
-    sides: BattleSides,
+    teams: readonly BattleTeamInfo[],
     width: number,
     height: number,
     getTeamColor: TeamColorResolver
@@ -122,47 +208,41 @@ export class HpHudRenderer {
         })
       );
     }
-    this.update(state, sides, width, height, getTeamColor);
+    this.update(state, teams, width, height, getTeamColor);
   }
 
   update(
     state: BattleState,
-    sides: BattleSides,
+    teams: readonly BattleTeamInfo[],
     width: number,
     height: number,
     getTeamColor: TeamColorResolver
   ) {
-    const { ally, enemy } = resolveFighterSides(state, sides);
+    const grouped = groupFightersByTeam(state, teams);
     const barWidth = HP_BAR.width;
     const barHeight = HP_BAR.height;
     const padding = HP_BAR.padding;
     const leftOffset = HP_BAR.leftOffset;
-    const rightOffset = width - barWidth - leftOffset;
 
-    let enemyY = height - barHeight;
-    for (const fighter of enemy) {
+    const placements = this.layout({
+      teams: grouped,
+      viewportWidth: width,
+      viewportHeight: height,
+      barWidth,
+      barHeight,
+      padding,
+      leftOffset,
+    });
+
+    for (const placement of placements) {
       this.renderHpBar(
-        fighter,
-        leftOffset,
-        enemyY,
+        placement.fighter,
+        placement.x,
+        placement.y,
         barWidth,
         barHeight,
         getTeamColor
       );
-      enemyY -= barHeight + padding;
-    }
-
-    let allyY = height - barHeight;
-    for (const fighter of ally) {
-      this.renderHpBar(
-        fighter,
-        rightOffset,
-        allyY,
-        barWidth,
-        barHeight,
-        getTeamColor
-      );
-      allyY -= barHeight + padding;
     }
   }
 

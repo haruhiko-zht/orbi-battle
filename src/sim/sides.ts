@@ -2,81 +2,96 @@ import type { BattleConfig, BattleState, FighterState } from "./types";
 
 export type BattleTeam = BattleConfig["teams"][number];
 
-export type BattleSides = {
-  ally: BattleTeam;
-  enemy: BattleTeam;
-};
-
-export type FighterSides = {
-  ally: FighterState[];
-  enemy: FighterState[];
+/**
+ * BattleConfig 内のチームを順序付きで表すメタ情報。
+ */
+export type BattleTeamInfo = {
+  /** コンフィグ内でのインデックス（0始まり） */
+  index: number;
+  /** チームID */
+  id: string;
+  /** チーム設定本体 */
+  team: BattleTeam;
 };
 
 /**
- * BattleConfig から味方・敵チームを抽出
- * - 現仕様では必ず2チーム（味方/敵）のみを許容
- * - 将来的に仕様が変わる場合はここを更新する
+ * 指定チームに紐づくファイター一覧。
  */
-export function resolveBattleSides(cfg: BattleConfig): BattleSides {
+export type TeamFighterGroup = {
+  info: BattleTeamInfo;
+  fighters: FighterState[];
+};
+
+/**
+ * BattleConfig からチーム情報を取得（順序は定義通り）。
+ */
+export function resolveBattleTeams(cfg: BattleConfig): BattleTeamInfo[] {
   if (cfg.teams.length !== 2) {
     throw new Error(
-      `[BattleConfig] 2チーム構成が必須です (ally/enemy)。現在のチーム数: ${cfg.teams.length}`
+      `[resolveBattleTeams] 2チーム構成（味方/敵）である必要があります。現在のチーム数: ${cfg.teams.length}`
     );
   }
-  return {
-    ally: cfg.teams[0],
-    enemy: cfg.teams[1],
-  };
+  return cfg.teams.map((team, index) => ({
+    index,
+    id: team.id,
+    team,
+  }));
 }
 
 /**
- * FighterState 配列を味方・敵に分類
- * - チームIDは BattleConfig 由来の順序と一致している前提
+ * 描画やロジック向けにファイターをチームごとへ分類。
+ * - 配列順はコンフィグのチーム順と一致
+ * - 未知のチームIDは警告を出しつつ末尾に追加
  */
-export function splitFightersBySide(
-  fighters: FighterState[],
-  sides: BattleSides
-): FighterSides {
-  const allyId = sides.ally.id;
-  const enemyId = sides.enemy.id;
+export function groupFightersByTeam(
+  state: BattleState,
+  teams: readonly BattleTeamInfo[]
+): TeamFighterGroup[] {
+  const fighterBuckets = new Map<string, FighterState[]>();
+  teams.forEach((team) => {
+    fighterBuckets.set(team.id, []);
+  });
 
-  const ally: FighterState[] = [];
-  const enemy: FighterState[] = [];
-
-  for (const fighter of fighters) {
-    if (fighter.teamId === allyId) {
-      ally.push(fighter);
-    } else if (fighter.teamId === enemyId) {
-      enemy.push(fighter);
-    } else {
-      // 2チーム以外のIDは現仕様では異常値とみなす
+  for (const fighter of state.fighters) {
+    if (!fighterBuckets.has(fighter.teamId)) {
       console.warn(
-        `[splitFightersBySide] 未知のteamIdを検出: ${fighter.teamId} (期待: ${allyId}/${enemyId})`
+        `[groupFightersByTeam] 未知のteamIdを検出: ${fighter.teamId}. BattleConfigに登録されていません。`
       );
+      fighterBuckets.set(fighter.teamId, []);
     }
+    fighterBuckets.get(fighter.teamId)!.push(fighter);
   }
 
-  return { ally, enemy };
+  const orderedGroups = teams.map((team) => ({
+    info: team,
+    fighters: sortFightersById(fighterBuckets.get(team.id) ?? []),
+  }));
+
+  // BattleConfigに存在しないチームIDのファイターを末尾に追加
+  const extraGroups: TeamFighterGroup[] = [];
+  fighterBuckets.forEach((fighters, teamId) => {
+    const existsInConfig = teams.some((team) => team.id === teamId);
+    if (!existsInConfig) {
+      extraGroups.push({
+        info: {
+          id: teamId,
+          index: Number.MAX_SAFE_INTEGER,
+          team: {
+            id: teamId,
+            fighters: fighters.map((fighter) => fighter.params),
+          },
+        },
+        fighters: sortFightersById(fighters),
+      });
+    }
+  });
+
+  return [...orderedGroups, ...extraGroups];
 }
 
 /**
- * 描画用にファイターを安定ソート
- * - 同一チーム内ではID順
+ * 同一チーム内で安定ソート（ID順）。
  */
-export function sortFightersBySide(fighters: FighterState[]): FighterState[] {
+export function sortFightersById(fighters: FighterState[]): FighterState[] {
   return [...fighters].sort((a, b) => a.id.localeCompare(b.id));
-}
-
-/**
- * BattleState から現在の味方/敵ファイター一覧を取得
- */
-export function resolveFighterSides(
-  state: BattleState,
-  sides: BattleSides
-): FighterSides {
-  const { ally, enemy } = splitFightersBySide(state.fighters, sides);
-  return {
-    ally: sortFightersBySide(ally),
-    enemy: sortFightersBySide(enemy),
-  };
 }

@@ -1,12 +1,21 @@
 import type { BattleConfig, BattleState, FighterState } from "./types";
 import { makeRng } from "./rng";
 import { getAI } from "./ai";
-import { validateBattleConfig } from "./validation";
+import {
+  validateBattleConfig,
+  type BattleConfigValidationOptions,
+} from "./validation";
 import {
   createDefaultFighterSystems,
   type FighterSystem,
 } from "./systems/fighterSystems";
 import type { FighterSystemContext } from "./systems/types";
+import { defaultPlacementStrategy, type PlacementStrategy } from "./placement";
+
+export type EngineOptions = {
+  placementStrategy?: PlacementStrategy;
+  validationOptions?: BattleConfigValidationOptions;
+};
 
 /**
  * バトルシミュレーションエンジン
@@ -25,48 +34,23 @@ export class Engine {
   state: BattleState;
   /** ファイター処理のパイプライン */
   private readonly fighterSystems: FighterSystem[];
+  /** 初期配置戦略 */
+  private readonly placementStrategy: PlacementStrategy;
 
-  constructor(cfg: BattleConfig) {
-    validateBattleConfig(cfg);
+  constructor(cfg: BattleConfig, options: EngineOptions = {}) {
+    const { placementStrategy = defaultPlacementStrategy, validationOptions } =
+      options;
+    validateBattleConfig(cfg, validationOptions);
     this.cfg = cfg;
     this.dt = 1 / cfg.tickRate;
     this.rng = makeRng(cfg.seed);
     this.fighterSystems = createDefaultFighterSystems();
-
-    // 初期配置: チーム数に応じて円周を等分し、各セクション内で等間隔配置
-    const r = cfg.arenaRadius * 0.7;
-    const fighters: BattleState["fighters"] = [];
-    const teamCount = cfg.teams.length;
-    const sectorSpan = (Math.PI * 2) / Math.max(1, teamCount);
-    const baseRotation = Math.PI; // チームインデックス0をアリーナ下側に配置
-
-    cfg.teams.forEach((team, teamIndex) => {
-      const numFighters = team.fighters.length;
-      const startAngle = baseRotation + sectorSpan * teamIndex;
-      const step = sectorSpan / Math.max(1, numFighters + 1);
-
-      team.fighters.forEach((params, fighterIndex) => {
-        const angle = startAngle + step * (fighterIndex + 1);
-
-        fighters.push({
-          id: `${team.id}-${fighterIndex}`,
-          teamId: team.id,
-          pos: {
-            x: Math.cos(angle) * r,
-            y: Math.sin(angle) * r,
-          },
-          hp: params.hpMax,
-          cooldown: 0,
-          alive: true,
-          params,
-        });
-      });
-    });
+    this.placementStrategy = placementStrategy;
 
     this.state = {
       t: 0,
       winner: null,
-      fighters,
+      fighters: this.placementStrategy.place(cfg),
     };
   }
 

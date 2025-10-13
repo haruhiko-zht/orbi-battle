@@ -7,7 +7,7 @@ import {
   RESULT_TEXT,
   TEAM_COLOR_PALETTE,
 } from "../config/renderConstants";
-import { resolveBattleSides, type BattleSides } from "../sim/sides";
+import { resolveBattleTeams, type BattleTeamInfo } from "../sim/sides";
 import { FighterObjectManager, HpHudRenderer } from "./battleLayers";
 import { BattleRuntimeController } from "./battleRuntimeController";
 
@@ -21,8 +21,8 @@ export class BattleScene extends Phaser.Scene {
   cfg: BattleConfig = structuredClone(defaults3v3);
   /** シミュレーション制御 */
   private runtime!: BattleRuntimeController;
-  /** 味方/敵チーム情報 */
-  private sides!: BattleSides;
+  /** 現在のチーム情報（コンフィグ順） */
+  private teams!: BattleTeamInfo[];
   /** 現在描画中の状態 */
   private currentState!: BattleState;
   /** アリーナ（円形境界）の描画オブジェクト */
@@ -38,7 +38,7 @@ export class BattleScene extends Phaser.Scene {
 
   private handleSimulationReset = (state: BattleState, cfg: BattleConfig) => {
     this.cfg = structuredClone(cfg);
-    this.sides = resolveBattleSides(this.cfg);
+    this.teams = resolveBattleTeams(this.cfg);
     this.currentState = state;
     this.initializeTeamColors();
     this.setupArena();
@@ -110,7 +110,7 @@ export class BattleScene extends Phaser.Scene {
     this.fighterObjects.update(state, center, resolveColor);
     this.hpHud.update(
       state,
-      this.sides,
+      this.teams,
       this.scale.width,
       this.scale.height,
       resolveColor
@@ -147,7 +147,7 @@ export class BattleScene extends Phaser.Scene {
     this.fighterObjects.rebuild(this.currentState, center, resolveColor);
     this.hpHud.rebuild(
       this.currentState,
-      this.sides,
+      this.teams,
       this.scale.width,
       this.scale.height,
       resolveColor
@@ -171,10 +171,11 @@ export class BattleScene extends Phaser.Scene {
    */
   private initializeTeamColors() {
     this.teamColors.clear();
-    const allyColor = TEAM_COLOR_PALETTE[0] ?? 0xffffff;
-    const enemyColor = TEAM_COLOR_PALETTE[1] ?? allyColor;
-    this.teamColors.set(this.sides.ally.id, allyColor);
-    this.teamColors.set(this.sides.enemy.id, enemyColor);
+    this.teams.forEach((teamInfo, index) => {
+      const color =
+        TEAM_COLOR_PALETTE[index % TEAM_COLOR_PALETTE.length] ?? 0xffffff;
+      this.teamColors.set(teamInfo.id, color);
+    });
   }
 
   /**

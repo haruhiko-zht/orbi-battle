@@ -206,7 +206,7 @@ describe("Engine", () => {
     };
 
     expect(() => new Engine(invalidConfig)).toThrowError(
-      "BattleConfig.teams には 1 チーム以上が必要です"
+      "BattleConfig.teams には 2 チーム以上が必要です"
     );
   });
 

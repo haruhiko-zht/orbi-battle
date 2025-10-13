@@ -1,15 +1,26 @@
 import type { BattleConfig, BattleState } from "./types";
 import { Engine } from "./engine";
 import { type BattleLog, cloneConfig, cloneState } from "./log";
-import { assertFinitePositive, validateBattleConfig } from "./validation";
+import {
+  assertFinitePositive,
+  validateBattleConfig,
+  type BattleConfigValidationOptions,
+} from "./validation";
+import type { PlacementStrategy } from "./placement";
 
 /** デフォルトの最大シミュレーション時間 [秒] */
 const DEFAULT_MAX_SECONDS = 60;
 
+export type SimulateBattleOptions = {
+  maxSeconds?: number;
+  placementStrategy?: PlacementStrategy;
+  validationOptions?: BattleConfigValidationOptions;
+};
+
 /**
  * simulateBattle オプションの妥当性を検証
  */
-function validateSimulateBattleOptions(opts?: { maxSeconds?: number }) {
+function validateSimulateBattleOptions(opts?: SimulateBattleOptions) {
   if (typeof opts === "undefined") return;
   if (typeof opts.maxSeconds === "undefined") return;
   assertFinitePositive(opts.maxSeconds, "simulateBattle(opts).maxSeconds");
@@ -26,12 +37,15 @@ function validateSimulateBattleOptions(opts?: { maxSeconds?: number }) {
  */
 export function simulateBattle(
   cfg: BattleConfig,
-  opts?: { maxSeconds?: number }
+  opts?: SimulateBattleOptions
 ): BattleLog {
-  validateBattleConfig(cfg);
+  validateBattleConfig(cfg, opts?.validationOptions);
   validateSimulateBattleOptions(opts);
 
-  const engine = new Engine(cfg);
+  const engine = new Engine(cfg, {
+    placementStrategy: opts?.placementStrategy,
+    validationOptions: opts?.validationOptions,
+  });
   const frames: BattleState[] = [cloneState(engine.state)];
   const maxSeconds = opts?.maxSeconds ?? DEFAULT_MAX_SECONDS;
   const maxFrames = Math.max(1, Math.ceil(cfg.tickRate * maxSeconds));
@@ -58,6 +72,8 @@ export function simulateBattle(
 export class BattleSim {
   /** 事前計算されたバトルログ */
   private log: BattleLog;
+  /** シミュレーション実行時のオプションを保持 */
+  private readonly options: SimulateBattleOptions;
   /** 現在のフレームインデックス */
   private frameIndex = 0;
   /** 固定タイムステップ用の時間蓄積 [秒] */
@@ -67,8 +83,9 @@ export class BattleSim {
   /** 再生中フラグ */
   running = true;
 
-  constructor(cfg: BattleConfig) {
-    this.log = simulateBattle(cfg);
+  constructor(cfg: BattleConfig, options: SimulateBattleOptions = {}) {
+    this.options = options;
+    this.log = simulateBattle(cfg, this.options);
     this.state = cloneState(this.log.frames[0]);
   }
 
@@ -79,7 +96,7 @@ export class BattleSim {
    * @param cfg 新しいバトル設定
    */
   reset(cfg: BattleConfig) {
-    this.log = simulateBattle(cfg);
+    this.log = simulateBattle(cfg, this.options);
     this.frameIndex = 0;
     this.accumulator = 0;
     this.state = cloneState(this.log.frames[0]);
