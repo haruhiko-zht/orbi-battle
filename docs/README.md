@@ -1,43 +1,27 @@
-# Orbi Battle - 概要
+# ドキュメントガイド
 
-## コアコンセプト
+最新の実装と運用方針を前提に、必要な情報へ最短で辿れるよう再編成しています。
 
-- 上から見下ろしの**円形 2D オートバトル**。
-- プレイヤーは事前に装備・戦術をセットし、戦闘開始後は自動で戦う。
-- 戦闘は**シミュレーション結果を描画**する構造。
+## 開発フロー
 
-## 技術スタック
+- [dev/setup.md](./dev/setup.md) — 必要なツール、初回セットアップ、デバッグ起動
+- [dev/testing.md](./dev/testing.md) — Vitest 実行パターンとカバレッジ基準
+- [dev/ai-system.md](./dev/ai-system.md) — AI 拡張ポイントと追加手順
+- [dev/roadmap.md](./dev/roadmap.md) — 直近 2〜4 週間の優先タスク
 
-| 分野   | 使用技術                    |
-| ------ | --------------------------- |
-| 言語   | TypeScript                  |
-| 描画   | Phaser 3                    |
-| ビルド | Vite                        |
-| 乱数   | Mulberry32 (seed 固定)      |
-| 構造   | Simulation / Rendering 分離 |
+## 設計リファレンス
 
-## 現状
+- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、`window.$orbi` API 概要
+- [design/simulation.md](./design/simulation.md) — シミュレーションルール、AI レジストリ、検証フック
+- [design/rendering.md](./design/rendering.md) — Phaser シーン構造、攻撃射程表示、レイアウト制約
+- [design/parameters.md](./design/parameters.md) — プリセット値、バランス調整の目安
 
-### 実装済み機能
+## 履歴・変更管理
 
-- 1vs1 バトル実装済み
-- HP バー中央に実数表示
-- パラメータを Debug パネルで即時変更可能
-- **リプレイシステム**: 事前シミュレーション + ログ記録
-- **決定論的動作**: 同じシード・設定で同じ結果
-- 固定タイムステップシミュレーション (60Hz)
+- [changelog.md](./changelog.md) — リリースノートとテスト証跡
 
-### ドキュメント
+## ドキュメント運用
 
-- 詳細な JSDoc コメント（全ファイル）
-- 設計ドキュメント充実
-  - [architecture.md](./design/architecture.md) - アーキテクチャ全体像
-  - [system.md](./design/system.md) - システム設計
-  - [simulation.md](./design/simulation.md) - シミュレーション仕様
-  - [parameters.md](./design/parameters.md) - パラメータ仕様
-  - [rendering.md](./design/rendering.md) - 描画仕様
-- 開発ドキュメント
-  - [roadmap.md](./dev/roadmap.md) - 今後の開発計画（フェーズ別）
-  - **[next-steps.md](./dev/next-steps.md)** - 次のステップ詳細ガイド
-  - [setup.md](./dev/setup.md) - セットアップ手順
-  - [tests.md](./dev/tests.md) - テスト環境ガイド
+- README とこのガイドから目的の情報へ 2 クリック以内で到達できる状態を維持する
+- 古いトピックは追記より統合・削除を優先し、 Issue / PR に最新議論を追い出す
+- 実装が更新された場合は関連する設計・手順ドキュメントを同じブランチで更新する

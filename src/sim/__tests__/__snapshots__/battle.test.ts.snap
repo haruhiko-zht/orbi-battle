@@ -1,0 +1,46 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`simulateBattle > ログの一貫性（スナップショット） 1`] = `
+{
+  "fighters": [
+    {
+      "alive": true,
+      "cooldown": 0.08333333333333343,
+      "hp": 50,
+      "id": "A-0",
+      "params": {
+        "atk": 10,
+        "cooldown": 0.45,
+        "hpMax": 120,
+        "range": 36,
+        "speed": 75,
+      },
+      "pos": {
+        "x": 5.082284216461528e-15,
+        "y": -17.75,
+      },
+      "teamId": "A",
+    },
+    {
+      "alive": true,
+      "cooldown": 0.06666666666666676,
+      "hp": 50,
+      "id": "B-0",
+      "params": {
+        "atk": 10,
+        "cooldown": 0.45,
+        "hpMax": 120,
+        "range": 36,
+        "speed": 75,
+      },
+      "pos": {
+        "x": 1.377727649040777e-14,
+        "y": 17.75,
+      },
+      "teamId": "B",
+    },
+  ],
+  "t": 4.999999999999988,
+  "winner": null,
+}
+`;

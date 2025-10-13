@@ -1,40 +1,41 @@
 # orbi-battle
 
-2D 円形アリーナでのオートバトルシミュレーター
+Phaser + TypeScript 製の決定論的オートバトルシミュレーター。アリーナの戦闘を事前に計算し、デバッグやリプレイ検証を高速に行えます。
 
-## セットアップ
+## クイックスタート
 
-```sh
-npm install
-npm run dev
-```
+1. `npm install`
+2. `npm run dev`
+3. ブラウザで `http://localhost:5173`
 
-ブラウザで http://localhost:5173 にアクセス
+## 主な特徴
 
-## 特徴
+- **事前シミュレーション方式**でバトルを全フレーム算出。ログを保存して巻き戻し・高速再生が自在。
+- **決定論的エンジン**が seed と設定に対して常に同一結果を保証。Vitest によるリグレッション検証が容易。
+- **レイヤー分離**（Simulation / Rendering / UI）によりロジックと描画を疎結合化。Node.js 上でシミュレーションのみ実行可能。
+- **デバッグパネル + `window.$orbi` API**（型定義済み）からリセットやシーク、再生速度変更をリアルタイム操作。
+- **AI 拡張ポイント**を `src/sim/ai` に集約し、パラメータと行動戦略をプリセットで試験できる。
 
-- **事前シミュレーション方式**: バトル全体を計算してリプレイ可能
-- **決定論的**: 同じシード・設定で同じ結果を保証
-- **レイヤー分離**: シミュレーション/描画/UI を完全分離
-- **デバッグパネル**: パラメータをリアルタイムで調整可能
-- **高テストカバレッジ**: 79 テスト、コアロジック 96%カバー
+## レイヤースタック
+
+- `src/sim/`: バトルエンジン、AI、ログ、入力検証（`validation.ts`）。
+- `src/render/`: Phaser シーンと再生制御。攻撃射程サークルや HP レイアウトを描画。
+- `src/ui/`: React 製デバッグパネルと `window.$orbi` ブリッジ。
+- `src/config/defaults.ts`: 1v1 / 3v3 / AI デモなどのプリセット。
+- `src/types/`: グローバル型（`window.$orbi`）や再生情報の定義。
 
 ## ドキュメント
 
-### 📚 設計ドキュメント
+- [docs/README.md](./docs/README.md) — ドキュメントの入り口と目的別ナビゲーション
+- 設計: [`docs/design/architecture.md`](./docs/design/architecture.md), [`simulation.md`](./docs/design/simulation.md), [`rendering.md`](./docs/design/rendering.md), [`parameters.md`](./docs/design/parameters.md)
+- 開発: [`docs/dev/setup.md`](./docs/dev/setup.md), [`testing.md`](./docs/dev/testing.md), [`ai-system.md`](./docs/dev/ai-system.md), [`roadmap.md`](./docs/dev/roadmap.md)
+- 履歴: [`docs/changelog.md`](./docs/changelog.md)
 
-- [アーキテクチャ全体像](./docs/design/architecture.md) - レイヤー構造、データフロー
-- [システム設計](./docs/design/system.md) - 各層の役割と連携
-- [シミュレーション仕様](./docs/design/simulation.md) - AI ロジック、決定論
+## 開発コマンド
 
-### 🚀 開発ガイド
-
-- [開発ロードマップ](./docs/dev/roadmap.md) - フェーズ別の実装計画
-- **[次のステップガイド](./docs/dev/next-steps.md)** - 今すぐ始められるタスク
-- [テスト環境ガイド](./docs/dev/testing.md) - テストの実行方法とカバレッジ
-- [セットアップ手順](./docs/dev/setup.md)
-- [更新履歴](./docs/changelog.md)
-
-### 📖 その他
-
-全体概要は [docs/README.md](./docs/README.md) を参照
+- `npm run dev` — Vite ホットリロード開発サーバー
+- `npm run build` — 本番ビルド（TypeScript 型チェック付き）
+- `npm run preview` — `dist/` ビルドのローカル確認
+- `npm run test` — Vitest（happy-dom ランタイム）
+- `npm run test:ui` — Vitest UI
+- `npm run test:coverage` — HTML / lcov カバレッジ出力

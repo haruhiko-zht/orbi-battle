@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cloneState, cloneConfig } from "../log";
-import type { BattleState, BattleConfig, FighterState } from "../types";
+import type { BattleState, BattleConfig } from "../types";
 
 describe("cloneState", () => {
   const createTestState = (): BattleState => ({

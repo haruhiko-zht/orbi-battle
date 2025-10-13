@@ -1,47 +1,60 @@
-# Repository Guidelines
+# AGENTS ガイド
 
-## Project Structure & Module Organization
-- `src/main.ts` initializes Phaser, the debug panel, and the `$orbi` window API.
-- `src/render/` contains Phaser scenes; specs live beside code in `__tests__/`.
-- `src/sim/` hosts the deterministic battle engine; unit tests mirror the folders.
-- `src/ui/` manages the debug panel and DOM helpers; keep UI assets here.
-- `src/config/defaults.ts` stores arena presets; tweak configs here rather than in scenes.
-- `docs/` holds design notes; `dist/` is Vite output; `coverage/` contains Vitest reports (leave untracked).
+## プロジェクト概要
 
-## Build, Test, and Development Commands
-- `npm install` — install dependencies after cloning or updating the lockfile.
-- `npm run dev` — start Vite at `http://localhost:5173/` with hot reload.
-- `npm run build` — create an optimized TypeScript-checked bundle in `dist/`.
-- `npm run preview` — serve the production build locally for manual verification.
-- `npm run test` — run the Vitest suite in the `happy-dom` runner.
-- `npm run test:ui` — open the interactive Vitest UI for focused debugging.
-- `npm run test:coverage` — emit HTML and lcov coverage to `coverage/`.
+- **orbi-battle** は TypeScript・Phaser・React・Vitest で構築された 2D 円形アリーナのオートバトルシミュレーターです。
+- バトルのシミュレーションはクライアント描画とは独立した決定的（deterministic）な事前演算で行われ、結果をリプレイとして再生します。
+- リポジトリ内のドキュメント補助: 詳細な設計メモは `docs/` 配下、リリースメモは `docs/changelog.md` を参照してください。
 
-## Coding Style & Naming Conventions
-- Use TypeScript with ES modules, two-space indentation, trailing semicolons, and double quotes.
-- Name classes and scenes `PascalCase`; functions, variables, and files `camelCase`.
-- Co-locate assets/tests with their modules and document tricky math or timing with brief comments.
+## ディレクトリ構成の要点
 
-## Testing Guidelines
-- Place specs in `__tests__/` directories, named `*.test.ts`, matching the module path.
-- Cover both pure simulation logic and render adapters; mock Phaser only when DOM rendering is impractical.
-- Run `npm run test` before pushing; add `npm run test:coverage` when touching combat math or RNG.
+- `src/main.ts`: Phaser の初期化、デバッグパネルのマウント、`window.$orbi` API の公開。
+- `src/config/`: アリーナのプリセットやバリデーション用定数を管理 (`defaults.ts` 等)。
+- `src/render/`: Phaser シーンと描画制御 (`phaserScene.ts`, `battleLayers.ts`, `battleRuntimeController.ts`)。`__tests__/` に描画層向けのユニットテストが同居します。
+- `src/sim/`: 決定的なバトルエンジン本体。`ai/`, `systems/`, `placement/`, `validation.ts` などサブモジュールごとに整理され、レンダリング・DOM 依存は禁止です。
+- `src/ui/`: React 製デバッグパネル (`debugPanel.tsx`) と `window.$orbi` ブリッジ (`api/orbiBridge.ts`)。
+- `src/types/`: レイヤー横断で共有する型 (`playback.ts`, `global.d.ts`)。
+- `dist/`: `npm run build` の出力。`coverage/`: `npm run test:coverage` の結果（Git 管理対象外）。
 
-## Commit & Pull Request Guidelines
-- Follow the repo’s short, present-tense commit style; Japanese summaries are common and welcome.
-- Keep each commit focused; add extra context in the body if behavior changes.
-- PRs should describe the problem, solution, and tests run, and link issues when relevant.
-- Provide screenshots or quick clips for gameplay or UI tweaks, ideally captured via `npm run preview`.
-- Confirm the branch is rebased onto `main` and that CI passes before requesting review.
+## よく使う npm スクリプト
 
-## Debug & Configuration Tips
-- Adjust default teams in `src/config/defaults.ts`; avoid editing generated logs.
-- The debug panel (`src/ui/debugPanel.ts`) relies on `window.$orbi.reset`; verify new controls in `npm run dev`.
-- Reserve global exports for the `$orbi` namespace to keep the game window clean.
+- `npm install`: 依存関係のインストール（ロックファイル更新後にも実行）。
+- `npm run dev`: Vite 開発サーバー（`http://localhost:5173/`）。
+- `npm run build`: 本番ビルド。TypeScript 型チェックを含み、出力は `dist/`。
+- `npm run preview`: 本番ビルドのローカル確認。
+- `npm run test`: Vitest（`happy-dom` 環境）。
+- `npm run test:ui`: Vitest UI。
+- `npm run test:coverage`: V8 カバレッジレポート（HTML・`lcov`）。
+- `npm run format` / `npm run format:check`: Prettier フォーマット。
 
-See also: `CLAUDE.md` for a deeper architecture overview and troubleshooting tips.
+## コーディング規約
 
-## Communication Guidelines
-- ユーザーへの応答は日本語で行う（簡潔・丁寧・具体的）。
-- 技術用語は一般的な日本語訳を優先し、英語原語も必要に応じ併記。
-- コマンド・パスはバッククォートで記載し、再現手順を短く提示。
+- TypeScript + ES Modules。インデント 2 スペース、末尾セミコロン有り、ダブルクォート統一。
+- クラス・シーン名は `PascalCase`、関数・変数・ファイルは `camelCase`。
+- テストは実装と同じ階層に `__tests__` ディレクトリを置き、`*.test.ts` として配置。
+- UI レイヤーは React + JSX。ロジックは hooks に小分けし、副作用は `useEffect`、状態変換は `useMemo` / `useCallback` でメモ化します。
+- 複雑な計算・タイミング調整は短いコメントで意図を明記してください（日本語優先、必要に応じて英語併記）。
+
+## テストと品質保証
+
+- シミュレーション層は純粋関数を優先し、`vitest` で単体テストを網羅します。RNG 周りを変更した場合は `npm run test:coverage` を実行して差分を確認してください。
+- 描画層は Phaser 依存があるため、型チェックと最小限のユニットテスト＋ `npm run preview` での目視確認を組み合わせます。
+- 新しい AI (`src/sim/ai/`) やシステム (`src/sim/systems/`) を追加する際は、決定性（determinism）が維持されることをテストで保証します。
+
+## コミット / PR 運用
+
+- コミットメッセージは短く現在形。必要なら本文で背景・挙動変更・テスト結果を補足します（日本語メッセージ歓迎）。
+- PR には課題、解決方法、実施テスト、関連 Issue を明記し、UI 変更時はスクリーンショットやショート動画を添付します。
+- マージ前に `main` へリベースし、CI が通過していることを確認します。
+
+## デバッグと設定のヒント
+
+- デフォルトチーム構成は `src/config/defaults.ts` を編集してください。生成物やログ (`dist/`, `coverage/`) を直接修正しないでください。
+- デバッグパネルは `window.$orbi.reset(config)` に依存します。新しい操作を追加したら `npm run dev` でブラウザを開き動作を検証してください。
+- グローバル名前空間の公開は `$orbi` に限定し、その他のグローバル汚染を避けます。
+
+## コミュニケーション指針
+
+- ユーザーへの応答は日本語で行い、簡潔・丁寧・具体的にまとめます。
+- 技術用語は可能な限り一般的な日本語訳を用い、必要に応じて英語原語も併記します。
+- コマンドやパスはバッククォートで囲み、再現手順は短く提示します。

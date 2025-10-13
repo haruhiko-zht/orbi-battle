@@ -193,6 +193,34 @@ describe("simulateBattle", () => {
     const maxFrames = config.tickRate * 30 + 1;
     expect(log.frames.length).toBeLessThanOrEqual(maxFrames);
   });
+
+  it("tickRate が 0 以下の場合は例外を投げる", () => {
+    const invalidConfig = {
+      ...defaultConfig,
+      tickRate: 0,
+    };
+
+    expect(() => simulateBattle(invalidConfig)).toThrowError(
+      "BattleConfig.tickRate は 0より大きいである必要があります"
+    );
+  });
+
+  it("arenaRadius が負の場合は例外を投げる", () => {
+    const invalidConfig = {
+      ...defaultConfig,
+      arenaRadius: -1,
+    };
+
+    expect(() => simulateBattle(invalidConfig)).toThrowError(
+      "BattleConfig.arenaRadius は 0より大きいである必要があります"
+    );
+  });
+
+  it("maxSeconds オプションが 0 以下の場合は例外を投げる", () => {
+    expect(() => simulateBattle(defaultConfig, { maxSeconds: 0 })).toThrowError(
+      "simulateBattle(opts).maxSeconds は 0より大きいである必要があります"
+    );
+  });
 });
 
 describe("BattleSim", () => {

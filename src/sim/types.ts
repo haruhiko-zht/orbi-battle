@@ -1,3 +1,5 @@
+import type { AIType } from "./ai";
+
 /**
  * ファイターのパラメータ定義
  * - すべて正の数値を想定
@@ -13,6 +15,8 @@ export type FighterParams = {
   speed: number;
   /** 攻撃後のクールダウン時間 [秒] */
   cooldown: number;
+  /** AI の種類（デフォルト: "nearest"） */
+  aiType?: AIType;
 };
 
 /**
