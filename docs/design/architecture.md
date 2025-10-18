@@ -15,7 +15,7 @@ orbi-battle はシミュレーションで確定した `BattleLog` を軸に、�
 - `BattleRuntimeController` — `BattleLog` を管理し再生・シーク・リセットの API をまとめる。
 - `phaserScene.ts` / `battleLayers.ts` — HUD と射程表示を組み立て、Phaser 更新ループから描画する。
 - `simulateBattle` / `BattleSim` — ログの生成・再生ヘルパー。決定論と `structuredClone` 配布を担保。
-- `validation.ts` — `BattleConfig` の事前検証。未知の `aiType` や異常値を遮断。
+- `validation.ts` — `BattleConfig` の事前検証。未知の `tacticId` や異常値を遮断。
 
 ## データフロー
 
@@ -57,6 +57,6 @@ orbi-battle はシミュレーションで確定した `BattleLog` を軸に、�
 
 ## 拡張ポイント
 
-- **AI 拡張** — `EngineOptions.createFighterSystems` を差し替えて職業・装備ごとの挙動を追加。
+- **戦術拡張** — `EngineOptions.createFighterSystems` を差し替えて職業・装備ごとの挙動を追加。
 - **イベントフック** — `BattleRuntimeController` にヒット／死亡イベントを通知して演出を拡張。
 - **パフォーマンス** — フレーム間引き、差分ログ、Web Worker 化などを検討中。

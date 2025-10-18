@@ -27,7 +27,7 @@ npm run format       # Prettier
 - **Simulation (`src/sim/`)** — Node.js 互換の純粋ロジック。`simulateBattle` / `BattleSim` / `validation.ts` / `rng.ts` を中心に構成。
 - **Rendering (`src/render/`)** — `BattleRuntimeController` と `phaserScene.ts` が `BattleLog` を再生し、HUD／射程表示を描画。
 - **UI (`src/ui/`)** — `debugPanel.tsx` と `api/orbiBridge.ts` が `window.$orbi` を介して操作。
-- **Config & Types** — `src/config/defaults.ts`（1v1, 3v3, AI デモ, Mixed）と `src/types/`（`global.d.ts`, `playback.ts`）。
+- **Config & Types** — `src/config/defaults.ts`（1v1, 3v3, 戦術デモ, Mixed）と `src/types/`（`global.d.ts`, `playback.ts`）。
 
 ## 実行フロー
 
@@ -39,7 +39,7 @@ npm run format       # Prettier
 ## 主要モジュールの着目点
 
 - `src/sim/engine.ts` — フレーム更新。移動・攻撃・クールダウン・勝敗判定を制御。
-- `src/sim/ai/` — `AI_DEFINITIONS` と `AI_OPTIONS` を管理し、`nearest`/`aggressive`/`defensive` 戦略を実装。
+- `src/sim/tactics/` — `TACTIC_DEFINITIONS` と `TACTIC_OPTIONS` を管理し、`nearest`/`aggressive`/`defensive` 戦略を実装。
 - `src/sim/systems/` — 位置計算や攻撃解決を分離したシステム群。
 - `src/sim/log.ts` — `cloneConfig` など決定論維持のユーティリティ。
 - `src/render/battleRuntimeController.ts` — 再生速度・シーク・終了判定を統括。
@@ -56,7 +56,7 @@ npm run format       # Prettier
 
 ## 拡張ヒント
 
-- **AI 追加**: `AI_DEFINITIONS` → `aiFactories` → プリセット / UI の順に更新し、`__tests__/ai.test.ts` で決定論を検証。
+- **戦術追加**: `TACTIC_DEFINITIONS` → `tacticFactories` → プリセット / UI の順に更新し、`__tests__/tactics.test.ts` で決定論を検証。
 - **ビジュアル演出**: `battleLayers.ts` を拡張し、シミュレーション層の出力のみを利用してエフェクトを追加。
 - **設定追加**: `defaults.ts`・`validation.ts`・`debugPanel.tsx`・`global.d.ts` を同時に更新して一貫性を保つ。
 - **システム拡張**: `EngineOptions.createFighterSystems` をカスタム実装に差し替え、`FighterParams` / `FighterState` へ属性を追加。

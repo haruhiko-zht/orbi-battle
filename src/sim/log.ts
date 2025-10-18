@@ -30,6 +30,7 @@ export function cloneState(state: BattleState): BattleState {
  * FighterState の深いコピーを作成
  */
 function cloneFighter(f: FighterState): FighterState {
+  const { equipment, ...restParams } = f.params;
   return {
     id: f.id,
     teamId: f.teamId,
@@ -38,10 +39,8 @@ function cloneFighter(f: FighterState): FighterState {
     cooldown: f.cooldown,
     alive: f.alive,
     params: {
-      ...f.params,
-      equipment: f.params.equipment
-        ? { ...f.params.equipment }
-        : undefined,
+      ...restParams,
+      ...(equipment ? { equipment: { ...equipment } } : {}),
     },
   };
 }
@@ -56,10 +55,13 @@ export function cloneConfig(cfg: BattleConfig): BattleConfig {
     tickRate: cfg.tickRate,
     teams: cfg.teams.map((team) => ({
       id: team.id,
-      fighters: team.fighters.map((f) => ({
-        ...f,
-        equipment: f.equipment ? { ...f.equipment } : undefined,
-      })),
+      fighters: team.fighters.map((f) => {
+        const { equipment: fighterEquipment, ...rest } = f;
+        return {
+          ...rest,
+          ...(fighterEquipment ? { equipment: { ...fighterEquipment } } : {}),
+        };
+      }),
     })),
   };
 }

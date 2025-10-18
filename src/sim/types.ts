@@ -1,4 +1,4 @@
-import type { AIType } from "./ai";
+import type { TacticId } from "./tactics";
 import type { EquipmentLoadout } from "../types/content";
 
 /**
@@ -16,8 +16,8 @@ export type FighterParams = {
   speed: number;
   /** 攻撃後のクールダウン時間 [秒] */
   cooldown: number;
-  /** AI の種類（デフォルト: "nearest"） */
-  aiType?: AIType;
+  /** 戦術ID（デフォルト: "nearest"） */
+  tacticId?: TacticId;
   /** 職業ID */
   jobId?: string;
   /** 装備ロードアウト（スロット -> 装備ID） */

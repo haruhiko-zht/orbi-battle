@@ -11,7 +11,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { presets, type PresetName } from "../config/defaults";
 import { cloneConfig } from "../sim/log";
-import { AI_OPTIONS, isAIType, type AIType } from "../sim/ai/types";
+import { TACTIC_OPTIONS, isTacticId } from "../sim/tactics/types";
 import type { BattleConfig, FighterParams } from "../sim/types";
 import { orbiBridge } from "./api/orbiBridge";
 import type { PlaybackInfo } from "../types/playback";
@@ -30,7 +30,7 @@ const DEFAULT_PLAYBACK_INFO: PlaybackInfo = {
   playbackRate: 1,
 };
 
-type FighterNumberProp = Exclude<keyof FighterParams, "aiType">;
+type FighterNumberProp = Exclude<keyof FighterParams, "tacticId">;
 
 type FighterNumberField = {
   kind: "number";
@@ -45,15 +45,15 @@ type DropdownOption = { value: string; label: string };
 
 type FighterSelectField = {
   kind: "select";
-  prop: "aiType";
+  prop: "tacticId";
   labelSuffix: string;
   options: ReadonlyArray<DropdownOption>;
 };
 
 type FighterField = FighterNumberField | FighterSelectField;
 
-const AI_SELECT_OPTIONS: ReadonlyArray<DropdownOption> = AI_OPTIONS.map(
-  ({ type, label }) => ({ value: type, label })
+const TACTIC_SELECT_OPTIONS: ReadonlyArray<DropdownOption> = TACTIC_OPTIONS.map(
+  ({ id, label }) => ({ value: id, label })
 );
 
 const FIGHTER_FIELDS: FighterField[] = [
@@ -64,9 +64,9 @@ const FIGHTER_FIELDS: FighterField[] = [
   { kind: "number", prop: "cooldown", labelSuffix: ".cd", step: 0.01 },
   {
     kind: "select",
-    prop: "aiType",
-    labelSuffix: ".ai",
-    options: AI_SELECT_OPTIONS,
+    prop: "tacticId",
+    labelSuffix: ".tactic",
+    options: TACTIC_SELECT_OPTIONS,
   },
 ];
 
@@ -76,8 +76,8 @@ function normalizeConfigForReset(cfg: BattleConfig): BattleConfig {
   const next = cloneConfig(cfg);
   next.teams.forEach((team) => {
     team.fighters.forEach((fighter) => {
-      if (!fighter.aiType) {
-        fighter.aiType = "nearest";
+      if (!fighter.tacticId) {
+        fighter.tacticId = "nearest";
       }
     });
   });
@@ -383,7 +383,7 @@ function FighterControls({
             />
           );
         }
-        const currentValue = fighter.aiType ?? "nearest";
+        const currentValue = fighter.tacticId ?? "nearest";
         return (
           <DropdownInput
             key={field.prop}
@@ -391,9 +391,9 @@ function FighterControls({
             value={currentValue}
             options={field.options}
             onChange={(selected) => {
-              if (!isAIType(selected)) return;
+              if (!isTacticId(selected)) return;
               applyFighterUpdate((params) => {
-                params.aiType = selected;
+                params.tacticId = selected;
               });
             }}
           />

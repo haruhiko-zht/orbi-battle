@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { simulateBattle } from "../battle";
 import type { BattleConfig } from "../types";
 
-describe("AI統合テスト", () => {
-  it("デフォルトAI（nearest）同士の対戦", () => {
+describe("戦術統合テスト", () => {
+  it("デフォルト戦術（nearest）同士の対戦", () => {
     const cfg: BattleConfig = {
       seed: 12345,
       arenaRadius: 300,
@@ -18,7 +18,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              // aiType 未指定 = デフォルト "nearest"
+              // tacticId 未指定 = デフォルト "nearest"
             },
           ],
         },
@@ -43,7 +43,7 @@ describe("AI統合テスト", () => {
     expect(log.frames.length).toBeGreaterThan(0);
   });
 
-  it("AggressiveAI vs DefensiveAI", () => {
+  it("Aggressive 戦術 vs Defensive 戦術", () => {
     const cfg: BattleConfig = {
       seed: 42,
       arenaRadius: 300,
@@ -58,7 +58,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
           ],
         },
@@ -71,7 +71,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "defensive",
+              tacticId: "defensive",
             },
           ],
         },
@@ -84,7 +84,7 @@ describe("AI統合テスト", () => {
     expect(log.frames.length).toBeGreaterThan(0);
   });
 
-  it("NearestTargetAI vs AggressiveAI", () => {
+  it("Nearest 戦術 vs Aggressive 戦術", () => {
     const cfg: BattleConfig = {
       seed: 999,
       arenaRadius: 300,
@@ -99,7 +99,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "nearest",
+              tacticId: "nearest",
             },
           ],
         },
@@ -112,7 +112,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
           ],
         },
@@ -125,7 +125,7 @@ describe("AI統合テスト", () => {
     expect(log.frames.length).toBeGreaterThan(0);
   });
 
-  it("複数のAIタイプが混在したチーム戦（3v3）", () => {
+  it("複数の戦術IDが混在したチーム戦（3v3）", () => {
     const cfg: BattleConfig = {
       seed: 777,
       arenaRadius: 400,
@@ -140,7 +140,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
             {
               hpMax: 100,
@@ -148,7 +148,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "defensive",
+              tacticId: "defensive",
             },
             {
               hpMax: 100,
@@ -156,7 +156,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "nearest",
+              tacticId: "nearest",
             },
           ],
         },
@@ -169,7 +169,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "nearest",
+              tacticId: "nearest",
             },
             {
               hpMax: 100,
@@ -177,7 +177,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
             {
               hpMax: 100,
@@ -185,7 +185,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "defensive",
+              tacticId: "defensive",
             },
           ],
         },
@@ -223,7 +223,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
           ],
         },
@@ -236,7 +236,7 @@ describe("AI統合テスト", () => {
               range: 80,
               speed: 50,
               cooldown: 0.5,
-              aiType: "defensive",
+              tacticId: "defensive",
             },
           ],
         },

@@ -1,4 +1,4 @@
-import { findNearestEnemy, normalizeVector } from "../ai/utils";
+import { findNearestEnemy, normalizeVector } from "../tactics/utils";
 import {
   registerMovementStrategy,
   registerTargetingStrategy,
@@ -81,9 +81,9 @@ export function registerDefaultBehaviorStrategies() {
 }
 
 export function resolveFallbackMovementId(
-  aiType: string | undefined
+  tacticId: string | undefined
 ): string {
-  switch (aiType) {
+  switch (tacticId) {
     case "aggressive":
       return "movement.approach";
     case "defensive":

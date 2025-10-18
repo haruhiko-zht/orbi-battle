@@ -8,7 +8,7 @@ Phaser + TypeScript 製の円形アリーナ向け決定論的オートバトル
 - **決定論の担保**: `seed` と構成が同じなら常に同じ `BattleLog` を出力。Vitest で差分検証しやすい設計です。
 - **3 レイヤー分離**: Simulation / Rendering / UI を疎結合化し、Node.js 上でシミュレーションだけを実行できます。
 - **デバッグ支援**: React 製パネルと `window.$orbi` API からリセット・シーク・再生速度変更を即時操作。
-- **AI 拡張性**: `src/sim/ai` に戦略とレジストリを集約し、プリセットで挙動比較が容易です。
+- **戦術拡張性**: `src/sim/tactics` に戦略とレジストリを集約し、プリセットで挙動比較が容易です。
 
 ## セットアップ
 
@@ -23,10 +23,10 @@ npm run dev
 
 ## 主要ディレクトリ
 
-- `src/sim/` — バトルエンジン・AI・ログ生成・入力検証。
+- `src/sim/` — バトルエンジン・戦術・ログ生成・入力検証。
 - `src/render/` — Phaser シーンと再生制御、HUD や射程表示の描画。
 - `src/ui/` — デバッグパネルと `window.$orbi` ブリッジ。
-- `src/config/defaults.ts` — 1v1 / 3v3 / AI デモ / Mixed などのプリセット。
+- `src/config/defaults.ts` — 1v1 / 3v3 / 戦術デモ / Mixed などのプリセット。
 - `src/types/` — 共有型定義と `global.d.ts` によるグローバル API 型付け。
 
 ## 実装ハイライト
@@ -39,7 +39,7 @@ npm run dev
 
 - [docs/README.md](./docs/README.md) — 目的別ナビゲーション。
 - 設計ガイド: [`docs/design/architecture.md`](./docs/design/architecture.md) / [`simulation.md`](./docs/design/simulation.md) / [`rendering.md`](./docs/design/rendering.md) / [`parameters.md`](./docs/design/parameters.md)
-- 開発ガイド: [`docs/dev/setup.md`](./docs/dev/setup.md) / [`testing.md`](./docs/dev/testing.md) / [`ai-system.md`](./docs/dev/ai-system.md) / [`roadmap.md`](./docs/dev/roadmap.md)
+- 開発ガイド: [`docs/dev/setup.md`](./docs/dev/setup.md) / [`testing.md`](./docs/dev/testing.md) / [`tactics-system.md`](./docs/dev/tactics-system.md) / [`roadmap.md`](./docs/dev/roadmap.md)
 - 更新履歴: [`docs/changelog.md`](./docs/changelog.md)
 
 ## よく使う npm スクリプト

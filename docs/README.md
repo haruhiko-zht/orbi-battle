@@ -10,13 +10,13 @@ orbi-battle のドキュメントは「開発」「設計」「運用」の 3 �
 ## 設計リファレンス
 
 - [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、`window.$orbi` API。
-- [design/simulation.md](./design/simulation.md) — シミュレーションの状態遷移、AI レジストリ、バリデーション。
+- [design/simulation.md](./design/simulation.md) — シミュレーションの状態遷移、戦術レジストリ、バリデーション。
 - [design/rendering.md](./design/rendering.md) — Phaser シーン構成、HUD／描画責務、パフォーマンス留意点。
 - [design/parameters.md](./design/parameters.md) — プリセット定義とバランス調整の目安。
 
 ## 開発リファレンス
 
-- [dev/ai-system.md](./dev/ai-system.md) — AI 追加手順とレジストリ更新のフロー。
+- [dev/tactics-system.md](./dev/tactics-system.md) — 戦術追加手順とレジストリ更新のフロー。
 - [dev/roadmap.md](./dev/roadmap.md) — 直近スプリントの優先タスクと次候補。
 
 ## 運用・履歴

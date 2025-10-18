@@ -1,7 +1,4 @@
-import type {
-  MovementStrategy,
-  TargetingStrategy,
-} from "./types";
+import type { MovementStrategy, TargetingStrategy } from "./types";
 
 const targetingStrategies = new Map<string, TargetingStrategy>();
 const movementStrategies = new Map<string, MovementStrategy>();
@@ -26,9 +23,7 @@ export function registerMovementStrategy(
   movementStrategies.set(id, strategy);
 }
 
-export function getMovementStrategy(
-  id: string
-): MovementStrategy | undefined {
+export function getMovementStrategy(id: string): MovementStrategy | undefined {
   return movementStrategies.get(id);
 }
 

@@ -11,5 +11,6 @@ export default defineConfig({
     globals: true,
     // デフォルトはhappy-dom（UIテスト用）
     environment: "happy-dom",
+    pool: "threads",
   },
 });

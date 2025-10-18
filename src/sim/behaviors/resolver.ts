@@ -14,10 +14,8 @@ import {
   resolveFallbackMovementId,
   resolveFallbackTargetingId,
 } from "./defaultStrategies";
-import {
-  getMovementStrategy,
-  getTargetingStrategy,
-} from "./registry";
+import { getMovementStrategy, getTargetingStrategy } from "./registry";
+import { getTactic } from "../tactics";
 
 const STAT_KEYS = ["hpMax", "atk", "range", "speed", "cooldown"] as const;
 
@@ -36,11 +34,10 @@ export type ResolvedBehaviorInfo = {
 export function resolveBehaviorForParams(
   baseParams: FighterParams
 ): ResolvedBehaviorInfo {
+  const { equipment: baseEquipment, ...restParams } = baseParams;
   const nextParams: FighterParams = {
-    ...baseParams,
-    equipment: baseParams.equipment
-      ? { ...baseParams.equipment }
-      : undefined,
+    ...restParams,
+    ...(baseEquipment ? { equipment: { ...baseEquipment } } : {}),
   };
 
   const job = resolveJob(nextParams.jobId);
@@ -49,25 +46,56 @@ export function resolveBehaviorForParams(
   applyLoadoutModifiers(nextParams, job, equipment);
   assertResolvedStatBounds(nextParams);
 
-  const targetingId = resolveTargetingStrategyId(equipment);
-  const movementId = resolveMovementStrategyId(nextParams.aiType, equipment);
+  const tacticId = nextParams.tacticId ?? "nearest";
+  nextParams.tacticId = tacticId;
 
-  const targeting =
-    getTargetingStrategy(targetingId) ??
-    getTargetingStrategy(resolveFallbackTargetingId());
-  const movement =
-    getMovementStrategy(movementId) ??
-    getMovementStrategy(resolveFallbackMovementId(baseParams.aiType));
+  const equipmentTargetingId = resolveStrategyFromEquipment(
+    equipment,
+    (equip) => equip.strategies?.targeting
+  );
+  const equipmentMovementId = resolveStrategyFromEquipment(
+    equipment,
+    (equip) => equip.strategies?.movement
+  );
 
-  if (!targeting || !movement) {
-    throw new Error(
-      "戦略レジストリの初期化に失敗しています。ターゲティングまたは移動戦略が見つかりません。"
-    );
+  const shouldUseStrategy =
+    typeof equipmentTargetingId === "string" ||
+    typeof equipmentMovementId === "string";
+
+  if (shouldUseStrategy) {
+    const targetingId = equipmentTargetingId ?? resolveFallbackTargetingId();
+    const movementId =
+      equipmentMovementId ?? resolveFallbackMovementId(tacticId);
+
+    const targeting =
+      getTargetingStrategy(targetingId) ??
+      getTargetingStrategy(resolveFallbackTargetingId());
+    const movement =
+      getMovementStrategy(movementId) ??
+      getMovementStrategy(resolveFallbackMovementId(tacticId));
+
+    if (!targeting || !movement) {
+      throw new Error(
+        "戦略レジストリの初期化に失敗しています。ターゲティングまたは移動戦略が見つかりません。"
+      );
+    }
+
+    return {
+      params: nextParams,
+      behavior: {
+        kind: "strategy",
+        targeting,
+        movement,
+      },
+    };
   }
 
   return {
     params: nextParams,
-    behavior: { targeting, movement },
+    behavior: {
+      kind: "tactic",
+      tactic: getTactic(tacticId),
+    },
   };
 }
 
@@ -166,29 +194,6 @@ function collectStatModifiers(
   }
 
   return acc;
-}
-
-function resolveTargetingStrategyId(
-  equipment: ResolvedEquipmentEntry[]
-): string {
-  const fromEquipment = resolveStrategyFromEquipment(equipment, (equip) => {
-    return equip.strategies?.targeting;
-  });
-  if (fromEquipment) return fromEquipment;
-
-  return resolveFallbackTargetingId();
-}
-
-function resolveMovementStrategyId(
-  aiType: FighterParams["aiType"],
-  equipment: ResolvedEquipmentEntry[]
-): string {
-  const fromEquipment = resolveStrategyFromEquipment(equipment, (equip) => {
-    return equip.strategies?.movement;
-  });
-  if (fromEquipment) return fromEquipment;
-
-  return resolveFallbackMovementId(aiType);
 }
 
 type StrategyExtractor = (equipment: EquipmentDefinition) => string | undefined;

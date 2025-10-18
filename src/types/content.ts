@@ -30,12 +30,7 @@ export type JobDefinition = {
 
 export type EquipmentSlot = "weapon" | "shoes" | "head" | "necklace";
 
-export const EQUIPMENT_SLOTS = [
-  "weapon",
-  "shoes",
-  "head",
-  "necklace",
-] as const;
+export const EQUIPMENT_SLOTS = ["weapon", "shoes", "head", "necklace"] as const;
 
 export function isEquipmentSlot(value: unknown): value is EquipmentSlot {
   return (

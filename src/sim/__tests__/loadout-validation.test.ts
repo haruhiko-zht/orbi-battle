@@ -68,7 +68,9 @@ describe("loadout validation", () => {
         head: "equip.weapon.basic",
       },
     });
-    expect(() => validateBattleConfig(cfg)).toThrow(/装備スロットが一致しません/);
+    expect(() => validateBattleConfig(cfg)).toThrow(
+      /装備スロットが一致しません/
+    );
   });
 
   it("未知の jobId で resolveBehaviorForParams が例外", () => {
@@ -91,6 +93,8 @@ describe("loadout validation", () => {
         head: "equip.weapon.basic",
       },
     });
-    expect(() => resolveBehaviorForParams(fighter)).toThrow(/装備スロットが一致しません/);
+    expect(() => resolveBehaviorForParams(fighter)).toThrow(
+      /装備スロットが一致しません/
+    );
   });
 });

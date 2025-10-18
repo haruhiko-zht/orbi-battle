@@ -1,18 +1,18 @@
 import type { FighterState } from "../types";
-import type { FighterAI, AIDecision } from "./types";
+import type { FighterTactic, TacticDecision } from "./types";
 import { findNearestEnemy, normalizeVector } from "./utils";
 
 /**
- * 防御的な AI
+ * 防御的な戦術
  * - 敵が射程の80%以内に近づいたら距離を取る
  * - 射程ギリギリから攻撃（キープディスタンス戦法）
  */
-export class DefensiveAI implements FighterAI {
+export class DefensiveTactic implements FighterTactic {
   decide(
     self: FighterState,
     enemies: FighterState[],
     _arenaRadius: number
-  ): AIDecision {
+  ): TacticDecision {
     const nearest = findNearestEnemy(self, enemies);
     if (!nearest) {
       return { targetId: null, moveDirection: null };

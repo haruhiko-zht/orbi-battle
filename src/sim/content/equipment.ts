@@ -18,9 +18,7 @@ export function getEquipmentDefinition(
   return equipmentMap.get(equipmentId);
 }
 
-export function getEquipmentBySlot(
-  slot: EquipmentSlot
-): EquipmentDefinition[] {
+export function getEquipmentBySlot(slot: EquipmentSlot): EquipmentDefinition[] {
   return [...(equipmentBySlot.get(slot) ?? [])];
 }
 

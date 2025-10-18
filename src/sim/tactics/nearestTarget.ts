@@ -1,18 +1,18 @@
 import type { FighterState } from "../types";
-import type { FighterAI, AIDecision } from "./types";
+import type { FighterTactic, TacticDecision } from "./types";
 import { findNearestEnemy, normalizeVector } from "./utils";
 
 /**
- * 最も近い敵をターゲットにして接近・攻撃する AI
+ * 最も近い敵をターゲットにして接近・攻撃する戦術
  * - 射程外なら接近
  * - 射程内なら攻撃
  */
-export class NearestTargetAI implements FighterAI {
+export class NearestTargetTactic implements FighterTactic {
   decide(
     self: FighterState,
     enemies: FighterState[],
     _arenaRadius: number
-  ): AIDecision {
+  ): TacticDecision {
     const nearest = findNearestEnemy(self, enemies);
     if (!nearest) {
       return { targetId: null, moveDirection: null };

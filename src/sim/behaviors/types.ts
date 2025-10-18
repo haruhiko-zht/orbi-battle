@@ -1,4 +1,5 @@
 import type { BattleConfig, BattleState, FighterState, Vec2 } from "../types";
+import type { FighterTactic } from "../tactics";
 
 export type BehaviorContext = {
   self: FighterState;
@@ -23,10 +24,18 @@ export interface MovementStrategy {
   compute(context: MovementContext): Vec2 | null;
 }
 
-export type FighterBehavior = {
+export type StrategyBehavior = {
+  kind: "strategy";
   targeting: TargetingStrategy;
   movement: MovementStrategy;
 };
+
+export type TacticBehavior = {
+  kind: "tactic";
+  tactic: FighterTactic;
+};
+
+export type FighterBehavior = StrategyBehavior | TacticBehavior;
 
 export type FighterBehaviorDecision = {
   targetId: string | null;

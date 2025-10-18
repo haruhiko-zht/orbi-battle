@@ -69,10 +69,10 @@ export const defaults3v3: BattleConfig = {
 };
 
 /**
- * AI 対戦デモ用設定（AggressiveAI vs DefensiveAI）
+ * 戦術デモ用設定（Aggressive vs Defensive）
  * - チーム順序は味方 -> 敵固定
  */
-export const aiDemoConfig: BattleConfig = {
+export const tacticsDemoConfig: BattleConfig = {
   seed: 42,
   arenaRadius: 220,
   tickRate: 60,
@@ -86,7 +86,7 @@ export const aiDemoConfig: BattleConfig = {
           range: 9,
           speed: 75,
           cooldown: 0.45,
-          aiType: "aggressive",
+          tacticId: "aggressive",
         },
       ],
     },
@@ -99,7 +99,7 @@ export const aiDemoConfig: BattleConfig = {
           range: 9,
           speed: 75,
           cooldown: 0.45,
-          aiType: "defensive",
+          tacticId: "defensive",
         },
       ],
     },
@@ -107,10 +107,10 @@ export const aiDemoConfig: BattleConfig = {
 };
 
 /**
- * 混合AI 3v3設定（各チームに異なるAIタイプが混在）
+ * 混合戦術 3v3設定（各チームに異なる戦術IDが混在）
  * - チーム順序は味方 -> 敵固定
  */
-export const mixedAI3v3: BattleConfig = {
+export const mixedTactics3v3: BattleConfig = {
   seed: 777,
   arenaRadius: 220,
   tickRate: 60,
@@ -124,7 +124,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 9,
           speed: 75,
           cooldown: 0.5,
-          aiType: "aggressive",
+          tacticId: "aggressive",
         },
         {
           hpMax: 120,
@@ -132,7 +132,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 10,
           speed: 60,
           cooldown: 0.4,
-          aiType: "defensive",
+          tacticId: "defensive",
         },
         {
           hpMax: 80,
@@ -140,7 +140,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 8,
           speed: 90,
           cooldown: 0.6,
-          aiType: "nearest",
+          tacticId: "nearest",
         },
       ],
     },
@@ -153,7 +153,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 9,
           speed: 75,
           cooldown: 0.5,
-          aiType: "nearest",
+          tacticId: "nearest",
         },
         {
           hpMax: 120,
@@ -161,7 +161,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 10,
           speed: 60,
           cooldown: 0.4,
-          aiType: "aggressive",
+          tacticId: "aggressive",
         },
         {
           hpMax: 80,
@@ -169,7 +169,7 @@ export const mixedAI3v3: BattleConfig = {
           range: 8,
           speed: 90,
           cooldown: 0.6,
-          aiType: "defensive",
+          tacticId: "defensive",
         },
       ],
     },
@@ -182,8 +182,8 @@ export const mixedAI3v3: BattleConfig = {
 export const presets = {
   "1v1 (default)": defaults,
   "3v3": defaults3v3,
-  "AI Demo (Aggressive vs Defensive)": aiDemoConfig,
-  "Mixed AI 3v3": mixedAI3v3,
+  "Tactics Demo (Aggressive vs Defensive)": tacticsDemoConfig,
+  "Mixed Tactics 3v3": mixedTactics3v3,
 } as const;
 
 export type PresetName = keyof typeof presets;

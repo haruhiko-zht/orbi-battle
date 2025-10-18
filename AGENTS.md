@@ -20,10 +20,10 @@ npm run preview  # build 済み成果物のローカル確認
 
 ## レイヤーと主要ファイル
 
-- `src/sim/` — 決定論的バトルエンジン。`simulateBattle` / `BattleSim` / `validation.ts` を中心に、AI (`ai/`)、システム (`systems/`)、初期配置 (`placement/`) を分離。
+- `src/sim/` — 決定論的バトルエンジン。`simulateBattle` / `BattleSim` / `validation.ts` を中心に、戦術 (`tactics/`)、システム (`systems/`)、初期配置 (`placement/`) を分離。
 - `src/render/` — Phaser シーン (`phaserScene.ts`) と `BattleRuntimeController` が `BattleLog` を再生し、HUD や射程表示を描画。
 - `src/ui/` — React デバッグパネル (`debugPanel.tsx`) と `api/orbiBridge.ts` が `window.$orbi` を介して操作。
-- `src/config/defaults.ts` — 1v1 / 3v3 / AI デモ / Mixed プリセット。チームは常に 2 列（味方 `teams[0]`, 敵 `teams[1]`）。
+- `src/config/defaults.ts` — 1v1 / 3v3 / 戦術デモ / Mixed プリセット。チームは常に 2 列（味方 `teams[0]`, 敵 `teams[1]`）。
 - `src/types/` — 共有型と `global.d.ts`。`window.$orbi` API の型を提供。
 
 ## 作業ルール
@@ -38,7 +38,7 @@ npm run preview  # build 済み成果物のローカル確認
 
 - ロジック変更時は `npm run test` を実行し、差分が疑わしい場合は `npm run test:coverage` で範囲を確認。
 - 描画変更は最小限のユニットテストに加え `npm run preview` で視覚確認。必要に応じてスクリーンショットを PR に添付。
-- 新しい AI やシステムを追加したら決定論テスト（`src/sim/__tests__`）を更新し、ログ差分が再現することを保証します。
+- 新しい戦術やシステムを追加したら決定論テスト（`src/sim/__tests__`）を更新し、ログ差分が再現することを保証します。
 
 ## 拡張・実装のヒント
 

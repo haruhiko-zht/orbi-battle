@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { act } from "react-dom/test-utils";
+import { act } from "react";
 import { createDebugPanel } from "../debugPanel";
 import type { BattleConfig } from "../../sim/types";
 import { presets } from "../../config/defaults";
@@ -79,11 +79,11 @@ describe("createDebugPanel", () => {
     // 13個の入力フィールド（seed, radius, tick, A×5, B×5）
     expect(inputs.length).toBe(13);
 
-    const aiSelects = overlay.querySelectorAll(
+    const tacticSelects = overlay.querySelectorAll(
       "section select"
     ) as NodeListOf<HTMLSelectElement>;
-    // 各ファイターに1つずつ AI セレクトを追加
-    expect(aiSelects.length).toBe(2);
+    // 各ファイターに1つずつ 戦術セレクトを追加
+    expect(tacticSelects.length).toBe(2);
   });
 
   it("各入力フィールドに初期値が設定される", () => {
@@ -149,7 +149,7 @@ describe("createDebugPanel", () => {
         ...team,
         fighters: team.fighters.map((fighter) => ({
           ...fighter,
-          aiType: "nearest",
+          tacticId: "nearest",
         })),
       })),
     });
@@ -165,7 +165,7 @@ describe("createDebugPanel", () => {
     const inputs = overlay.querySelectorAll(
       'input[type="number"]'
     ) as NodeListOf<HTMLInputElement>;
-    const aiSelects = overlay.querySelectorAll(
+    const tacticSelects = overlay.querySelectorAll(
       "section select"
     ) as NodeListOf<HTMLSelectElement>;
     const button = overlay.querySelector("button") as HTMLButtonElement;
@@ -177,8 +177,8 @@ describe("createDebugPanel", () => {
       inputs[1].dispatchEvent(new Event("input", { bubbles: true }));
       setInputValue(inputs[3], "150");
       inputs[3].dispatchEvent(new Event("input", { bubbles: true }));
-      setSelectValue(aiSelects[0], "aggressive");
-      aiSelects[0].dispatchEvent(new Event("change", { bubbles: true }));
+      setSelectValue(tacticSelects[0], "aggressive");
+      tacticSelects[0].dispatchEvent(new Event("change", { bubbles: true }));
     });
 
     await act(async () => {
@@ -200,7 +200,7 @@ describe("createDebugPanel", () => {
               range: 30,
               speed: 50,
               cooldown: 0.5,
-              aiType: "aggressive",
+              tacticId: "aggressive",
             },
           ],
         },
@@ -213,7 +213,7 @@ describe("createDebugPanel", () => {
               range: 35,
               speed: 55,
               cooldown: 0.6,
-              aiType: "nearest",
+              tacticId: "nearest",
             },
           ],
         },
@@ -243,15 +243,15 @@ describe("createDebugPanel", () => {
     expect(overlay.textContent).not.toContain("existing content");
   });
 
-  it("AI セレクトの初期値が nearest になる", () => {
+  it("戦術セレクトの初期値が nearest になる", () => {
     createDebugPanel(defaultConfig);
 
     const overlay = document.getElementById("overlay")!;
-    const aiSelects = overlay.querySelectorAll(
+    const tacticSelects = overlay.querySelectorAll(
       "section select"
     ) as NodeListOf<HTMLSelectElement>;
 
-    aiSelects.forEach((select) => {
+    tacticSelects.forEach((select) => {
       expect(select.value).toBe("nearest");
     });
   });

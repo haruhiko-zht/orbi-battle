@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { NearestTargetAI } from "../nearestTarget";
-import { AggressiveAI } from "../aggressive";
-import { DefensiveAI } from "../defensive";
-import { getAI } from "../index";
+import { NearestTargetTactic } from "../nearestTarget";
+import { AggressiveTactic } from "../aggressive";
+import { DefensiveTactic } from "../defensive";
+import { getTactic } from "../index";
 import type { FighterState } from "../../types";
 
 /**
@@ -29,17 +29,17 @@ function createFighter(
       range,
       speed,
       cooldown: 1,
-      aiType: "nearest",
+      tacticId: "nearest",
     },
   };
 }
 
-describe("NearestTargetAI", () => {
-  const ai = new NearestTargetAI();
+describe("NearestTargetTactic", () => {
+  const tactic = new NearestTargetTactic();
 
   it("敵がいない場合は何もしない", () => {
     const self = createFighter("A-0", "A", 0, 0);
-    const decision = ai.decide(self, [], 300);
+    const decision = tactic.decide(self, [], 300);
     expect(decision.targetId).toBeNull();
     expect(decision.moveDirection).toBeNull();
   });
@@ -47,7 +47,7 @@ describe("NearestTargetAI", () => {
   it("射程外の敵に向かって移動する", () => {
     const self = createFighter("A-0", "A", 0, 0, 50);
     const enemy = createFighter("B-0", "B", 100, 0);
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).not.toBeNull();
@@ -58,7 +58,7 @@ describe("NearestTargetAI", () => {
   it("射程内の敵に対しては移動せず攻撃", () => {
     const self = createFighter("A-0", "A", 0, 0, 100);
     const enemy = createFighter("B-0", "B", 50, 0);
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).toBeNull(); // 射程内なので移動しない
@@ -68,18 +68,18 @@ describe("NearestTargetAI", () => {
     const self = createFighter("A-0", "A", 0, 0);
     const farEnemy = createFighter("B-0", "B", 200, 0);
     const nearEnemy = createFighter("B-1", "B", 50, 0);
-    const decision = ai.decide(self, [farEnemy, nearEnemy], 300);
+    const decision = tactic.decide(self, [farEnemy, nearEnemy], 300);
 
     expect(decision.targetId).toBe("B-1"); // 近い方を選択
   });
 });
 
-describe("AggressiveAI", () => {
-  const ai = new AggressiveAI();
+describe("AggressiveTactic", () => {
+  const tactic = new AggressiveTactic();
 
   it("敵がいない場合は何もしない", () => {
     const self = createFighter("A-0", "A", 0, 0);
-    const decision = ai.decide(self, [], 300);
+    const decision = tactic.decide(self, [], 300);
     expect(decision.targetId).toBeNull();
     expect(decision.moveDirection).toBeNull();
   });
@@ -87,7 +87,7 @@ describe("AggressiveAI", () => {
   it("射程外の敵に向かって移動する", () => {
     const self = createFighter("A-0", "A", 0, 0, 50);
     const enemy = createFighter("B-0", "B", 100, 0);
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).not.toBeNull();
@@ -96,7 +96,7 @@ describe("AggressiveAI", () => {
   it("射程内でも接近し続ける（密着戦闘）", () => {
     const self = createFighter("A-0", "A", 0, 0, 100);
     const enemy = createFighter("B-0", "B", 50, 0);
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).not.toBeNull(); // 射程内でも移動する
@@ -104,12 +104,12 @@ describe("AggressiveAI", () => {
   });
 });
 
-describe("DefensiveAI", () => {
-  const ai = new DefensiveAI();
+describe("DefensiveTactic", () => {
+  const tactic = new DefensiveTactic();
 
   it("敵がいない場合は何もしない", () => {
     const self = createFighter("A-0", "A", 0, 0);
-    const decision = ai.decide(self, [], 300);
+    const decision = tactic.decide(self, [], 300);
     expect(decision.targetId).toBeNull();
     expect(decision.moveDirection).toBeNull();
   });
@@ -117,7 +117,7 @@ describe("DefensiveAI", () => {
   it("敵が近すぎる場合は距離を取る", () => {
     const self = createFighter("A-0", "A", 0, 0, 100);
     const enemy = createFighter("B-0", "B", 50, 0); // 射程100の50%位置
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).not.toBeNull();
@@ -127,7 +127,7 @@ describe("DefensiveAI", () => {
   it("適切な距離（射程80%〜100%）では停止", () => {
     const self = createFighter("A-0", "A", 0, 0, 100);
     const enemy = createFighter("B-0", "B", 90, 0); // 射程100の90%位置
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).toBeNull(); // 適切な距離なので停止
@@ -136,7 +136,7 @@ describe("DefensiveAI", () => {
   it("射程外なら接近する", () => {
     const self = createFighter("A-0", "A", 0, 0, 100);
     const enemy = createFighter("B-0", "B", 150, 0);
-    const decision = ai.decide(self, [enemy], 300);
+    const decision = tactic.decide(self, [enemy], 300);
 
     expect(decision.targetId).toBe("B-0");
     expect(decision.moveDirection).not.toBeNull();
@@ -144,25 +144,25 @@ describe("DefensiveAI", () => {
   });
 });
 
-describe("getAI", () => {
-  it("nearest タイプで NearestTargetAI を取得", () => {
-    const ai = getAI("nearest");
-    expect(ai).toBeInstanceOf(NearestTargetAI);
+describe("getTactic", () => {
+  it("nearest ID で NearestTargetTactic を取得", () => {
+    const tactic = getTactic("nearest");
+    expect(tactic).toBeInstanceOf(NearestTargetTactic);
   });
 
-  it("aggressive タイプで AggressiveAI を取得", () => {
-    const ai = getAI("aggressive");
-    expect(ai).toBeInstanceOf(AggressiveAI);
+  it("aggressive ID で AggressiveTactic を取得", () => {
+    const tactic = getTactic("aggressive");
+    expect(tactic).toBeInstanceOf(AggressiveTactic);
   });
 
-  it("defensive タイプで DefensiveAI を取得", () => {
-    const ai = getAI("defensive");
-    expect(ai).toBeInstanceOf(DefensiveAI);
+  it("defensive ID で DefensiveTactic を取得", () => {
+    const tactic = getTactic("defensive");
+    expect(tactic).toBeInstanceOf(DefensiveTactic);
   });
 
   it("同じタイプを複数回取得してもシングルトン", () => {
-    const ai1 = getAI("nearest");
-    const ai2 = getAI("nearest");
-    expect(ai1).toBe(ai2); // 同じインスタンス
+    const tactic1 = getTactic("nearest");
+    const tactic2 = getTactic("nearest");
+    expect(tactic1).toBe(tactic2); // 同じインスタンス
   });
 });

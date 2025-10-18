@@ -14,6 +14,7 @@ exports[`simulateBattle > ログの一貫性（スナップショット） 1`] =
         "hpMax": 120,
         "range": 36,
         "speed": 75,
+        "tacticId": "nearest",
       },
       "pos": {
         "x": 5.082284216461528e-15,
@@ -32,6 +33,7 @@ exports[`simulateBattle > ログの一貫性（スナップショット） 1`] =
         "hpMax": 120,
         "range": 36,
         "speed": 75,
+        "tacticId": "nearest",
       },
       "pos": {
         "x": 1.377727649040777e-14,

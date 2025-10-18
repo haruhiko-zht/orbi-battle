@@ -1,5 +1,5 @@
 import type { BattleConfig } from "./types";
-import { AI_TYPES, isAIType } from "./ai/types";
+import { TACTIC_IDS, isTacticId } from "./tactics/types";
 import { getJobDefinition } from "./content/jobs";
 import { getEquipmentDefinition } from "./content/equipment";
 import { isEquipmentSlot } from "../types/content";
@@ -86,15 +86,20 @@ export function validateBattleConfig(
         allowZero: true,
       });
 
-      if (typeof fighter.aiType !== "undefined" && !isAIType(fighter.aiType)) {
+      if (
+        typeof fighter.tacticId !== "undefined" &&
+        !isTacticId(fighter.tacticId)
+      ) {
         throw new Error(
-          `${basePath}.aiType が不正です（${AI_TYPES.join("/")} のいずれか）`
+          `${basePath}.tacticId が不正です（${TACTIC_IDS.join("/")} のいずれか）`
         );
       }
 
       if (typeof fighter.jobId !== "undefined") {
         if (typeof fighter.jobId !== "string" || fighter.jobId.length === 0) {
-          throw new Error(`${basePath}.jobId は空でない文字列である必要があります`);
+          throw new Error(
+            `${basePath}.jobId は空でない文字列である必要があります`
+          );
         }
         if (!getJobDefinition(fighter.jobId)) {
           throw new Error(
@@ -109,7 +114,9 @@ export function validateBattleConfig(
           typeof fighter.equipment !== "object" ||
           Array.isArray(fighter.equipment)
         ) {
-          throw new Error(`${basePath}.equipment はオブジェクトである必要があります`);
+          throw new Error(
+            `${basePath}.equipment はオブジェクトである必要があります`
+          );
         }
         Object.entries(fighter.equipment).forEach(([slot, value]) => {
           if (typeof value !== "string") {

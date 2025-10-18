@@ -1,12 +1,12 @@
 import type { BattleConfig, BattleState, FighterState } from "../types";
-import type { AIDecision } from "../ai/types";
+import type { TacticDecision } from "../tactics/types";
 
 /**
  * 各システムに渡す共通コンテキスト
  */
 export type FighterSystemContext = {
   self: FighterState;
-  decision: AIDecision;
+  decision: TacticDecision;
   state: BattleState;
   config: BattleConfig;
   dt: number;

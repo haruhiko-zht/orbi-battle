@@ -69,7 +69,7 @@ export class Engine {
 
   /**
    * ファイター1体の1フレーム分の行動処理
-   * - AI による意思決定
+   * - 戦術による意思決定
    * - クールダウン減少
    * - 移動または攻撃の実行
    * - 境界チェック
@@ -91,15 +91,12 @@ export class Engine {
     if (!behavior) {
       throw new Error(`戦略が初期化されていません: ${self.id}`);
     }
-    const decision = decideBehavior(
-      behavior,
-      {
-        self,
-        enemies,
-        state: this.state,
-        config: this.cfg,
-      }
-    );
+    const decision = decideBehavior(behavior, {
+      self,
+      enemies,
+      state: this.state,
+      config: this.cfg,
+    });
 
     const context: FighterSystemContext = {
       self,
@@ -159,5 +156,4 @@ export class Engine {
       this.behaviors.set(fighter.id, behavior);
     }
   }
-
 }
