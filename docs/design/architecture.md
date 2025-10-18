@@ -1,94 +1,62 @@
 # アーキテクチャ
 
-orbi-battle はシミュレーション・描画・UI を分離し、決定論的なバトルログを中心にやり取りする構成です。
+orbi-battle はシミュレーションで確定した `BattleLog` を軸に、描画と UI を疎結合で連携させる構成です。
 
 ## レイヤー構造
 
-```
-┌─────────────────────────────────────┐
-│             UI Layer                │ React + DOM（デバッグパネル）
-├─────────────────────────────────────┤
-│          Rendering Layer            │ Phaser（ログ再生専任）
-├─────────────────────────────────────┤
-│         Simulation Layer            │ 純粋ロジック（Node でも実行可）
-├─────────────────────────────────────┤
-│        Config / Shared Types        │ プリセット・型定義・検証
-└─────────────────────────────────────┘
-```
+- **Simulation** — `src/sim/`。純粋ロジックでバトルを固定ステップ計算し、ログと検証を担当。
+- **Rendering** — `src/render/`。Phaser シーンが `BattleLog` を再生し、HUD とアニメーションを描画。
+- **UI** — `src/ui/`。React デバッグパネルと `orbiBridge` が `window.$orbi` API を操作。
+- **Config / Types** — `src/config/`, `src/types/`。プリセットと共有型で全レイヤーを統制。
 
 ## 主要モジュール
 
-- `src/main.ts` — Phaser とデバッグパネルの起動。`window.$orbi` を公開。
-- `src/sim/` — バトルエンジン、AI、ログ、`validation.ts` による入力検証。
-- `src/render/` — `BattleRuntimeController` がログを再生し、`phaserScene.ts` で描画。攻撃射程サークルや HP レイアウトを担当。
-- `src/ui/` — React 製 `debugPanel.tsx` と `api/orbiBridge.ts`。`window.$orbi` を安全に呼び出す。
-- `src/config/defaults.ts` — 1v1 / 3v3 / AI デモ / 混合 AI のプリセット。
-- `src/types/global.d.ts` — `window.$orbi` の型定義を提供し、グローバル API を型安全に扱える。
+- `src/main.ts` — Phaser ゲームとデバッグパネルを初期化し、`window.$orbi` を公開。
+- `BattleRuntimeController` — `BattleLog` を管理し再生・シーク・リセットの API をまとめる。
+- `phaserScene.ts` / `battleLayers.ts` — HUD と射程表示を組み立て、Phaser 更新ループから描画する。
+- `simulateBattle` / `BattleSim` — ログの生成・再生ヘルパー。決定論と `structuredClone` 配布を担保。
+- `validation.ts` — `BattleConfig` の事前検証。未知の `aiType` や異常値を遮断。
 
 ## データフロー
 
 ### 起動
 
-```
-main.ts
-  ├─→ new Phaser.Game()
-  │    └─→ BattleScene.create()
-  │         └─→ new BattleRuntimeController(defaults)
-  │              └─→ BattleSim.precompute()
-  │                   └─→ simulateBattle(defaults)
-  └─→ createDebugPanel(defaults)
-       └─→ window.$orbi を公開
-```
+1. `main.ts` が `new Phaser.Game()` と `createDebugPanel()` を生成。
+2. `BattleRuntimeController` がプリセットを検証し `simulateBattle()` で `BattleLog` を生成。
+3. `window.$orbi` に再生 API を束ね、UI・コンソールから共通操作できるようにする。
 
-### 毎フレーム更新
+### 再生ループ
 
-```
-Phaser requestAnimationFrame
-  └─→ BattleScene.update(delta)
-       └─→ BattleRuntimeController.update(delta)
-            └─→ PlaybackController.step()
-                 └─→ BattleSim.getCurrentState()
-                      └─→ BattleScene.renderState()
-```
+1. `requestAnimationFrame` → `BattleScene.update(delta)`。
+2. `BattleRuntimeController.update()` が再生速度・スキップロジックを処理。
+3. 現在の `BattleState` を取得し、Scene が各レイヤーへ反映。
 
-### リセット・設定変更
+### リセット / 設定変更
 
-```
-debugPanel ⇒ window.$orbi.reset(newConfig)
-  └─→ BattleRuntimeController.reset(newConfig)
-       └─→ validateConfig(newConfig)
-       └─→ simulateBattle(newConfig)
-       └─→ BattleScene.renderState(firstFrame)
-```
+1. `debugPanel` または API から `window.$orbi.reset(config)` を呼び出す。
+2. 構成を `validateConfig` で検証後、`simulateBattle` が新しいログを生成。
+3. `BattleScene` が初期フレームを描画し、再生状態をリセット。
 
 ## `window.$orbi` API
 
-`src/types/global.d.ts` で型付けされたグローバル。デバッグパネルと開発者コンソールから利用します。
+`src/types/global.d.ts` で型付けされ、開発者コンソールと UI から利用できます。
 
-- `reset(config)` — 設定を検証したうえでバトルを再計算。
-- `play() / pause()` — ログの再生制御。
-- `stepFrame()` — 単一フレーム進行。
-- `seekFrame(index)` — 任意フレームへシーク。
-- `setPlaybackRate(rate)` — 再生速度変更。
-- `getPlaybackInfo()` — 経過フレーム数や再生状態を取得。
-- `getLog()` — 事前計算済みの `BattleLog` を取得。
-- `game` — Phaser.Game インスタンス（描画デバッグ用）。
+- `reset(config)` — 検証後にバトルを再計算。
+- `play()` / `pause()` / `stepFrame()` / `seekFrame(index)` — 再生制御。
+- `setPlaybackRate(rate)` — 速度変更。
+- `getPlaybackInfo()` — 現在フレーム・総フレーム・再生状態を取得。
+- `getLog()` — `BattleLog` を取得（読み取りのみ想定）。
+- `game` — `Phaser.Game` インスタンス。描画調査用。
 
-## 更新周期
+## 設計原則
 
-- **シミュレーション**: `tickRate`（デフォルト 60Hz）で固定ステップ進行。描画 FPS に依存しない。
-- **描画**: `requestAnimationFrame` に応じて最大 60FPS で再生。ログが尽きたら停止。
-- **ログ長**: デフォルトは 60 秒上限。拡張時は `simulateBattle` の `maxSeconds` で制御。
-
-## 設計方針
-
-- **決定論**: `Mulberry32` 乱数と完全なログ保存で同じ入力から同じ結果を保証。
-- **疎結合**: シミュレーションは Phaser を知らず、描画はログの状態取得のみ行う。
-- **型安全性**: グローバル API を含む公開インターフェースは TypeScript で厳密に定義。
-- **デバッグ性**: `window.$orbi` と Vitest を併用し、ロジック／描画／UI を独立検証。
+- **決定論の維持** — `Mulberry32` RNG と完全なログ保存で同一入力から同一結果を保証。
+- **責務分離** — Simulation は Phaser を知らず、Rendering はログの読み取りに専念。
+- **型安全** — 公開 API は TypeScript 型を通り、`window.$orbi` もグローバル型で保証。
+- **開発効率** — 再現性の高いログと Vitest によりリグレッションを高速確認。
 
 ## 拡張ポイント
 
-- **AI 拡張** — `src/sim/ai` に戦略を追加し、プリセットや UI から参照。
-- **イベント配信** — BattleSim からイベントをフックしてエフェクトや HUD を強化。
-- **パフォーマンス** — フレーム間引き・差分ログ・Web Worker 前計算を検討中。
+- **AI 拡張** — `EngineOptions.createFighterSystems` を差し替えて職業・装備ごとの挙動を追加。
+- **イベントフック** — `BattleRuntimeController` にヒット／死亡イベントを通知して演出を拡張。
+- **パフォーマンス** — フレーム間引き、差分ログ、Web Worker 化などを検討中。

@@ -2,69 +2,58 @@
 
 ## プロジェクト概要
 
-- **orbi-battle** は TypeScript・Phaser・React・Vitest で構築された 2D 円形アリーナのオートバトルシミュレーターです。
-- バトルのシミュレーションはクライアント描画とは独立した決定的（deterministic）な事前演算で行われ、結果をリプレイとして再生します。
-- リポジトリ内のドキュメント補助: 詳細な設計メモは `docs/` 配下、リリースメモは `docs/changelog.md` を参照してください。
+- **orbi-battle** は TypeScript / Phaser / React / Vitest で構築した 2D 円形アリーナのオートバトルシミュレーターです。
+- シミュレーションは描画と独立した事前計算で実行され、生成した `BattleLog` を再生してリプレイを提供します。
+- 詳細設計は `docs/`、更新履歴は `docs/changelog.md` を参照してください（最終更新: 2025-10-18）。
 
-## ゲーム仕様の前提
+## すぐに使うコマンド
 
-- バトルは常に 2 チーム構成（`teams[0]` = 味方、`teams[1]` = 敵）を前提としています。多人数戦や PvE 波状戦は仕様外なので、汎用化を試みないでください。
-- HP HUD や勝敗表示、`resolveBattleTeams()` などのユーティリティは上記前提をもとに最適化されています。チーム数制約に関する指摘は不要です。
+```bash
+npm install
+npm run dev      # http://localhost:5173 で再生
+npm run test     # Vitest (happy-dom)
+npm run build    # 型チェック付き本番ビルド
+npm run preview  # build 済み成果物のローカル確認
+```
 
-## ディレクトリ構成の要点
+追加で `npm run test:coverage`（カバレッジ確認）、`npm run format` / `format:check`（Prettier）を利用します。
 
-- `src/main.ts`: Phaser の初期化、デバッグパネルのマウント、`window.$orbi` API の公開。
-- `src/config/`: アリーナのプリセットやバリデーション用定数を管理 (`defaults.ts` 等)。
-- `src/render/`: Phaser シーンと描画制御 (`phaserScene.ts`, `battleLayers.ts`, `battleRuntimeController.ts`)。`__tests__/` に描画層向けのユニットテストが同居します。
-- `src/sim/`: 決定的なバトルエンジン本体。`ai/`, `systems/`, `placement/`, `validation.ts` などサブモジュールごとに整理され、レンダリング・DOM 依存は禁止です。
-- `src/ui/`: React 製デバッグパネル (`debugPanel.tsx`) と `window.$orbi` ブリッジ (`api/orbiBridge.ts`)。
-- `src/types/`: レイヤー横断で共有する型 (`playback.ts`, `global.d.ts`)。
-- `dist/`: `npm run build` の出力。`coverage/`: `npm run test:coverage` の結果（Git 管理対象外）。
+## レイヤーと主要ファイル
 
-## よく使う npm スクリプト
+- `src/sim/` — 決定論的バトルエンジン。`simulateBattle` / `BattleSim` / `validation.ts` を中心に、AI (`ai/`)、システム (`systems/`)、初期配置 (`placement/`) を分離。
+- `src/render/` — Phaser シーン (`phaserScene.ts`) と `BattleRuntimeController` が `BattleLog` を再生し、HUD や射程表示を描画。
+- `src/ui/` — React デバッグパネル (`debugPanel.tsx`) と `api/orbiBridge.ts` が `window.$orbi` を介して操作。
+- `src/config/defaults.ts` — 1v1 / 3v3 / AI デモ / Mixed プリセット。チームは常に 2 列（味方 `teams[0]`, 敵 `teams[1]`）。
+- `src/types/` — 共有型と `global.d.ts`。`window.$orbi` API の型を提供。
 
-- `npm install`: 依存関係のインストール（ロックファイル更新後にも実行）。
-- `npm run dev`: Vite 開発サーバー（`http://localhost:5173/`）。
-- `npm run build`: 本番ビルド。TypeScript 型チェックを含み、出力は `dist/`。
-- `npm run preview`: 本番ビルドのローカル確認。
-- `npm run test`: Vitest（`happy-dom` 環境）。
-- `npm run test:ui`: Vitest UI。
-- `npm run test:coverage`: V8 カバレッジレポート（HTML・`lcov`）。
-- `npm run format` / `npm run format:check`: Prettier フォーマット。
+## 作業ルール
 
-## コーディング規約
-
-- TypeScript + ES Modules。インデント 2 スペース、末尾セミコロン有り、ダブルクォート統一。
-- クラス・シーン名は `PascalCase`、関数・変数・ファイルは `camelCase`。
-- テストは実装と同じ階層に `__tests__` ディレクトリを置き、`*.test.ts` として配置。
-- UI レイヤーは React + JSX。ロジックは hooks に小分けし、副作用は `useEffect`、状態変換は `useMemo` / `useCallback` でメモ化します。
-- 複雑な計算・タイミング調整は短いコメントで意図を明記してください（日本語優先、必要に応じて英語併記）。
-
-## 拡張の指針
-
-- シミュレーション層のファイター処理は `createDefaultFighterSystems()` を基にしたシステムパイプラインで構築されています。`EngineOptions.createFighterSystems` からカスタムシステムを注入することで、職業・装備による攻撃バリエーションなどを柔軟に追加できます。
-- ファイター固有の挙動差分は `FighterParams` / `FighterState` に属性を拡張し、`FighterSystemContext.self.params` を参照する形で実装してください。
+- 2 チーム構成が仕様。多人数戦の汎用化は不要。HUD もこの前提で最適化済み。
+- TypeScript + ES Modules。インデント 2 スペース、末尾セミコロン、ダブルクォート統一。
+- テストは実装と同階層の `__tests__` に配置。必要な場合のみスナップショットを使用し、決定論テストを優先。
+- UI ロジックは hooks へ分割し、副作用は `useEffect`、計算は `useMemo` / `useCallback` でメモ化。
+- シミュレーション層では DOM / Phaser への依存、`Math.random()` / `Date.now()` の使用を禁止。`src/sim/rng.ts` を利用。
 
 ## テストと品質保証
 
-- シミュレーション層は純粋関数を優先し、`vitest` で単体テストを網羅します。RNG 周りを変更した場合は `npm run test:coverage` を実行して差分を確認してください。
-- 描画層は Phaser 依存があるため、型チェックと最小限のユニットテスト＋ `npm run preview` での目視確認を組み合わせます。
-- 新しい AI (`src/sim/ai/`) やシステム (`src/sim/systems/`) を追加する際は、決定性（determinism）が維持されることをテストで保証します。
+- ロジック変更時は `npm run test` を実行し、差分が疑わしい場合は `npm run test:coverage` で範囲を確認。
+- 描画変更は最小限のユニットテストに加え `npm run preview` で視覚確認。必要に応じてスクリーンショットを PR に添付。
+- 新しい AI やシステムを追加したら決定論テスト（`src/sim/__tests__`）を更新し、ログ差分が再現することを保証します。
 
-## コミット / PR 運用
+## 拡張・実装のヒント
 
-- コミットメッセージは短く現在形。必要なら本文で背景・挙動変更・テスト結果を補足します（日本語メッセージ歓迎）。
-- PR には課題、解決方法、実施テスト、関連 Issue を明記し、UI 変更時はスクリーンショットやショート動画を添付します。
-- マージ前に `main` へリベースし、CI が通過していることを確認します。
+- `EngineOptions.createFighterSystems` を差し替えると職業・装備などの拡張が可能。`FighterParams` / `FighterState` に属性を追加して扱います。
+- 設定項目を増やす場合は `src/config/defaults.ts` と `src/sim/validation.ts`、UI フォーム（`debugPanel.tsx`）を同じブランチで更新。
+- `window.$orbi` には `reset` / `play` / `pause` / `seekFrame` / `setPlaybackRate` / `getPlaybackInfo` / `getLog` が公開済み。追加 API は型定義とドキュメントを同時更新。
 
-## デバッグと設定のヒント
+## コミットとレビュー
 
-- デフォルトチーム構成は `src/config/defaults.ts` を編集してください。生成物やログ (`dist/`, `coverage/`) を直接修正しないでください。
-- デバッグパネルは `window.$orbi.reset(config)` に依存します。新しい操作を追加したら `npm run dev` でブラウザを開き動作を検証してください。
-- グローバル名前空間の公開は `$orbi` に限定し、その他のグローバル汚染を避けます。
+- コミットメッセージは短く現在形。テスト結果や背景は本文で補足。
+- PR では課題・解決策・実施テスト・関連 Issue を明記し、UI 変更はキャプチャを添付。
+- マージ前に最新 `main` へリベースし、CI を通過させてください。
 
 ## コミュニケーション指針
 
-- ユーザーへの応答は日本語で行い、簡潔・丁寧・具体的にまとめます。
-- 技術用語は可能な限り一般的な日本語訳を用い、必要に応じて英語原語も併記します。
-- コマンドやパスはバッククォートで囲み、再現手順は短く提示します。
+- 応答は日本語で簡潔・丁寧・具体的にまとめる。
+- 技術用語は一般的な日本語訳を用い、必要に応じて英語表記を併記。
+- コマンド・パスはバッククォートで示し、再現手順は短く提示する。

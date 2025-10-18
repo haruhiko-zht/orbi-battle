@@ -1,27 +1,30 @@
 # ドキュメントガイド
 
-最新の実装と運用方針を前提に、必要な情報へ最短で辿れるよう再編成しています。
+orbi-battle のドキュメントは「開発」「設計」「運用」の 3 軸で整理しています。README から 2 クリック以内に目的の情報へ到達できる構成を維持してください。
 
-## 開発フロー
+## まず読む
 
-- [dev/setup.md](./dev/setup.md) — 必要なツール、初回セットアップ、デバッグ起動
-- [dev/testing.md](./dev/testing.md) — Vitest 実行パターンとカバレッジ基準
-- [dev/ai-system.md](./dev/ai-system.md) — AI 拡張ポイントと追加手順
-- [dev/roadmap.md](./dev/roadmap.md) — 直近 2〜4 週間の優先タスク
+- [dev/setup.md](./dev/setup.md) — 必要なツールと初回セットアップ、デバッグパネルの使い方。
+- [dev/testing.md](./dev/testing.md) — テスト実行パターン、カバレッジ基準、決定論チェックの指針。
 
 ## 設計リファレンス
 
-- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、`window.$orbi` API 概要
-- [design/simulation.md](./design/simulation.md) — シミュレーションルール、AI レジストリ、検証フック
-- [design/rendering.md](./design/rendering.md) — Phaser シーン構造、攻撃射程表示、レイアウト制約
-- [design/parameters.md](./design/parameters.md) — プリセット値、バランス調整の目安
+- [design/architecture.md](./design/architecture.md) — レイヤー構造、データフロー、`window.$orbi` API。
+- [design/simulation.md](./design/simulation.md) — シミュレーションの状態遷移、AI レジストリ、バリデーション。
+- [design/rendering.md](./design/rendering.md) — Phaser シーン構成、HUD／描画責務、パフォーマンス留意点。
+- [design/parameters.md](./design/parameters.md) — プリセット定義とバランス調整の目安。
 
-## 履歴・変更管理
+## 開発リファレンス
 
-- [changelog.md](./changelog.md) — リリースノートとテスト証跡
+- [dev/ai-system.md](./dev/ai-system.md) — AI 追加手順とレジストリ更新のフロー。
+- [dev/roadmap.md](./dev/roadmap.md) — 直近スプリントの優先タスクと次候補。
 
-## ドキュメント運用
+## 運用・履歴
 
-- README とこのガイドから目的の情報へ 2 クリック以内で到達できる状態を維持する
-- 古いトピックは追記より統合・削除を優先し、 Issue / PR に最新議論を追い出す
-- 実装が更新された場合は関連する設計・手順ドキュメントを同じブランチで更新する
+- [changelog.md](./changelog.md) — 更新履歴とテスト証跡。
+
+## ドキュメント運用ポリシー
+
+- 実装変更と同じブランチで関連ドキュメントを更新する。
+- 古い情報は追記ではなく統合または削除し、詳細議論は Issue / PR に移す。
+- ドキュメントのリンク切れと重複を定期的に見直す。
