@@ -1,0 +1,42 @@
+[
+  {
+    "id": "equip.weapon.basic",
+    "slot": "weapon",
+    "name": "訓練用ソード",
+    "statModifiers": {
+      "atk": 2
+    },
+    "strategies": {
+      "attack": "attack.basic"
+    }
+  },
+  {
+    "id": "equip.shoes.runner",
+    "slot": "shoes",
+    "name": "ランナーシューズ",
+    "statModifiers": {
+      "speed": 10
+    },
+    "strategies": {
+      "movement": "movement.approach"
+    }
+  },
+  {
+    "id": "equip.head.scout",
+    "slot": "head",
+    "name": "スカウトゴーグル",
+    "statModifiers": {},
+    "strategies": {
+      "targeting": "targeting.nearest"
+    }
+  },
+  {
+    "id": "equip.necklace.none",
+    "slot": "necklace",
+    "name": "お守り",
+    "statModifiers": {},
+    "strategies": {
+      "switching": "switch.none"
+    }
+  }
+]

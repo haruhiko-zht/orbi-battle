@@ -37,7 +37,12 @@ function cloneFighter(f: FighterState): FighterState {
     hp: f.hp,
     cooldown: f.cooldown,
     alive: f.alive,
-    params: { ...f.params },
+    params: {
+      ...f.params,
+      equipment: f.params.equipment
+        ? { ...f.params.equipment }
+        : undefined,
+    },
   };
 }
 
@@ -51,7 +56,10 @@ export function cloneConfig(cfg: BattleConfig): BattleConfig {
     tickRate: cfg.tickRate,
     teams: cfg.teams.map((team) => ({
       id: team.id,
-      fighters: team.fighters.map((f) => ({ ...f })),
+      fighters: team.fighters.map((f) => ({
+        ...f,
+        equipment: f.equipment ? { ...f.equipment } : undefined,
+      })),
     })),
   };
 }

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "job.none",
+    "name": "なし",
+    "description": "デフォルトの職業。追加効果はありません。",
+    "modifiers": {
+      "battleStart": {}
+    }
+  },
+  {
+    "id": "job.warrior",
+    "name": "ウォリアー",
+    "description": "攻撃的な前衛職。",
+    "modifiers": {
+      "battleStart": {
+        "hpMax": 20,
+        "atk": 3
+      }
+    },
+    "attackPatternId": "attack.basic"
+  }
+]

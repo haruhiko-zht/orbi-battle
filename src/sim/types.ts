@@ -1,4 +1,5 @@
 import type { AIType } from "./ai";
+import type { EquipmentLoadout } from "../types/content";
 
 /**
  * ファイターのパラメータ定義
@@ -17,6 +18,10 @@ export type FighterParams = {
   cooldown: number;
   /** AI の種類（デフォルト: "nearest"） */
   aiType?: AIType;
+  /** 職業ID */
+  jobId?: string;
+  /** 装備ロードアウト（スロット -> 装備ID） */
+  equipment?: EquipmentLoadout;
 };
 
 /**

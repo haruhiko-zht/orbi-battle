@@ -1,6 +1,5 @@
 import type { BattleConfig, BattleState, FighterState } from "./types";
 import { makeRng } from "./rng";
-import { getAI } from "./ai";
 import {
   validateBattleConfig,
   type BattleConfigValidationOptions,
@@ -11,6 +10,9 @@ import {
 } from "./systems/fighterSystems";
 import type { FighterSystemContext } from "./systems/types";
 import { defaultPlacementStrategy, type PlacementStrategy } from "./placement";
+import { decideBehavior } from "./behaviors/decision";
+import { resolveBehaviorForParams } from "./behaviors/resolver";
+import type { FighterBehavior } from "./behaviors/types";
 
 export type FighterSystemsFactory = (cfg: BattleConfig) => FighterSystem[];
 
@@ -39,6 +41,8 @@ export class Engine {
   private readonly fighterSystems: FighterSystem[];
   /** 初期配置戦略 */
   private readonly placementStrategy: PlacementStrategy;
+  /** ファイターごとの行動戦略 */
+  private readonly behaviors = new Map<string, FighterBehavior>();
 
   constructor(cfg: BattleConfig, options: EngineOptions = {}) {
     const {
@@ -59,6 +63,8 @@ export class Engine {
       winner: null,
       fighters: this.placementStrategy.place(cfg),
     };
+
+    this.initializeBehaviors();
   }
 
   /**
@@ -81,10 +87,19 @@ export class Engine {
     // 敵が全滅していれば何もしない
     if (enemies.length === 0) return;
 
-    // AI による意思決定
-    const aiType = self.params.aiType ?? "nearest";
-    const ai = getAI(aiType);
-    const decision = ai.decide(self, enemies, this.cfg.arenaRadius);
+    const behavior = this.behaviors.get(self.id);
+    if (!behavior) {
+      throw new Error(`戦略が初期化されていません: ${self.id}`);
+    }
+    const decision = decideBehavior(
+      behavior,
+      {
+        self,
+        enemies,
+        state: this.state,
+        config: this.cfg,
+      }
+    );
 
     const context: FighterSystemContext = {
       self,
@@ -135,4 +150,14 @@ export class Engine {
 
     return s;
   }
+
+  private initializeBehaviors() {
+    for (const fighter of this.state.fighters) {
+      const { params, behavior } = resolveBehaviorForParams(fighter.params);
+      fighter.params = params;
+      fighter.hp = params.hpMax;
+      this.behaviors.set(fighter.id, behavior);
+    }
+  }
+
 }

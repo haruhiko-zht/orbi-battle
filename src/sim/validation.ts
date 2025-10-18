@@ -1,5 +1,8 @@
 import type { BattleConfig } from "./types";
 import { AI_TYPES, isAIType } from "./ai/types";
+import { getJobDefinition } from "./content/jobs";
+import { getEquipmentDefinition } from "./content/equipment";
+import { isEquipmentSlot } from "../types/content";
 
 export type BattleConfigValidationOptions = {
   /**
@@ -87,6 +90,50 @@ export function validateBattleConfig(
         throw new Error(
           `${basePath}.aiType が不正です（${AI_TYPES.join("/")} のいずれか）`
         );
+      }
+
+      if (typeof fighter.jobId !== "undefined") {
+        if (typeof fighter.jobId !== "string" || fighter.jobId.length === 0) {
+          throw new Error(`${basePath}.jobId は空でない文字列である必要があります`);
+        }
+        if (!getJobDefinition(fighter.jobId)) {
+          throw new Error(
+            `${basePath}.jobId "${fighter.jobId}" は未登録の職業IDです`
+          );
+        }
+      }
+
+      if (typeof fighter.equipment !== "undefined") {
+        if (
+          fighter.equipment === null ||
+          typeof fighter.equipment !== "object" ||
+          Array.isArray(fighter.equipment)
+        ) {
+          throw new Error(`${basePath}.equipment はオブジェクトである必要があります`);
+        }
+        Object.entries(fighter.equipment).forEach(([slot, value]) => {
+          if (typeof value !== "string") {
+            throw new Error(
+              `${basePath}.equipment[${slot}] は文字列の装備IDである必要があります`
+            );
+          }
+          if (!isEquipmentSlot(slot)) {
+            throw new Error(
+              `${basePath}.equipment[${slot}] は有効な装備スロットではありません`
+            );
+          }
+          const equipmentDef = getEquipmentDefinition(value);
+          if (!equipmentDef) {
+            throw new Error(
+              `${basePath}.equipment[${slot}] "${value}" は未登録の装備IDです`
+            );
+          }
+          if (equipmentDef.slot !== slot) {
+            throw new Error(
+              `${basePath}.equipment[${slot}] "${value}" は ${equipmentDef.slot} 用の装備です（装備スロットが一致しません）`
+            );
+          }
+        });
       }
     });
   });
