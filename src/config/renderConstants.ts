@@ -15,8 +15,8 @@ export const SIM_VIEWPORT = {
 
 /** 実際の描画キャンバス解像度 */
 export const CANVAS_VIEWPORT = {
-  width: 1920,
-  height: 1080,
+  width: 1280,
+  height: 720,
 } as const;
 
 const widthScale = CANVAS_VIEWPORT.width / SIM_VIEWPORT.width;

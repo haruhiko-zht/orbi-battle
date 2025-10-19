@@ -10,32 +10,151 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
+        background: #0e0f13;
       }
+
+      body {
+        display: flex;
+        flex-direction: row;
+      }
+
       #app {
-        height: 100%;
-        margin: 0;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
       }
+
       #overlay {
-        position: fixed;
-        top: 8px;
-        left: 8px;
-        background: rgba(0, 0, 0, 0.6);
+        width: 320px;
+        height: 100vh;
+        overflow-y: auto;
+        background: #1a1b1f;
         color: #fff;
-        padding: 8px;
-        border-radius: 8px;
+        padding: 16px;
+        border-left: 1px solid #333;
         font:
           12px/1.4 ui-monospace,
           monospace;
+        box-sizing: border-box;
       }
-      #overlay input {
-        width: 72px;
+
+      #overlay .debug-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
-      #overlay label {
-        display: inline-block;
-        min-width: 70px;
+
+      #overlay input,
+      #overlay select {
+        width: 100%;
+        box-sizing: border-box;
+        background: #2a2b2f;
+        border: 1px solid #444;
+        color: #fff;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font: inherit;
       }
+
+      #overlay input:focus,
+      #overlay select:focus {
+        outline: none;
+        border-color: #4a90e2;
+      }
+
+      #overlay .debug-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #overlay .debug-input > span,
+      #overlay .debug-input > label {
+        flex: 0 0 90px;
+        font-size: 11px;
+        color: #aaa;
+      }
+
+      #overlay .debug-input > input,
+      #overlay .debug-input > select {
+        flex: 1;
+        min-width: 0;
+      }
+
       #overlay button {
-        margin-top: 6px;
+        width: 100%;
+        padding: 8px;
+        background: #4a90e2;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      #overlay button:hover {
+        background: #5aa0f2;
+      }
+
+      #overlay button:active {
+        background: #3a80d2;
+      }
+
+      #overlay button:disabled {
+        background: #555;
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      #overlay fieldset {
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 12px;
+        margin: 0;
+      }
+
+      #overlay legend {
+        padding: 0 8px;
+        color: #4a90e2;
+        font-weight: bold;
+      }
+
+      #overlay .debug-team {
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 12px;
+      }
+
+      #overlay .debug-team h3 {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: #4a90e2;
+      }
+
+      #overlay .fighter-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 0;
+      }
+
+      #overlay .playback-controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      #overlay .playback-controls button {
+        flex: 1;
+      }
+
+      #overlay .playback-status {
+        text-align: center;
+        font-size: 11px;
+        color: #aaa;
+        padding: 4px 0;
       }
     </style>
   </head>
